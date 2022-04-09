@@ -1,0 +1,10 @@
+/artifacts
+/cache
+/coverage
+/node_modules
+/typechain-types
+
+/.DS_store
+/.env
+/coverage.json
+/package-lock.json
