@@ -1,10 +1,12 @@
 import { ethers } from 'hardhat';
 
 async function main() {
-  const Greeter = await ethers.getContractFactory('Greeter');
-  const greeter = await Greeter.deploy('Hello, Hardhat!');
-  await greeter.deployed();
-  console.log('Greeter deployed to:', greeter.address);
+  const MessiahSystemFactory = await ethers.getContractFactory(
+    'MessiahSystemFactory'
+  );
+  const messiahSystemFactory = await MessiahSystemFactory.deploy();
+  await messiahSystemFactory.deployed();
+  console.log('Greeter deployed to:', messiahSystemFactory.address);
 }
 
 main().catch(error => {
