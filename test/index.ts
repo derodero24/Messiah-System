@@ -1,6 +1,5 @@
 import { expect } from 'chai';
 import { constants } from 'ethers/lib/index';
-import { getAddress } from 'ethers/lib/utils';
 import { ethers } from 'hardhat';
 
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -44,21 +43,21 @@ describe('Greeter', () => {
   it('Deploy new Messiah System', async () => {
     // before deploy
     const targetAddress = originalToken721.address;
-    let messiahInfo = await messiahSystemFactory.messiahInfo(targetAddress);
-    expect(messiahInfo.messiahSystemAddress).to.equal(constants.AddressZero);
-    expect(messiahInfo.messiahTokenAddress).to.equal(constants.AddressZero);
+    let messiahSystemAddress = await messiahSystemFactory.messiahSystemAddress(
+      targetAddress
+    );
+    expect(messiahSystemAddress).to.equal(constants.AddressZero);
 
     // after deploy
     await messiahSystemFactory.deployMessiah(targetAddress);
-    messiahInfo = await messiahSystemFactory.messiahInfo(targetAddress);
-    expect(messiahInfo.messiahSystemAddress).to.not.equal(
-      constants.AddressZero
+    messiahSystemAddress = await messiahSystemFactory.messiahSystemAddress(
+      targetAddress
     );
-    expect(messiahInfo.messiahTokenAddress).to.not.equal(constants.AddressZero);
+    expect(messiahSystemAddress).to.not.equal(constants.AddressZero);
 
     // check greet function
     const _MessiahSystem = await ethers.getContractFactory('MessiahSystem');
-    messiahSystem = _MessiahSystem.attach(messiahInfo.messiahSystemAddress);
+    messiahSystem = _MessiahSystem.attach(messiahSystemAddress);
     expect(await messiahSystem.greet()).to.equal('hello');
   }).timeout(60_000); // set 60 second timeout
 });
