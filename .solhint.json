@@ -2,7 +2,7 @@
   "extends": "solhint:recommended",
   "rules": {
     "compiler-version": [
-      "error",
+      "warn",
       "^0.8.9"
     ],
     "func-visibility": [
