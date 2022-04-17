@@ -3,54 +3,137 @@ pragma solidity ^0.8.9;
 
 import "hardhat/console.sol";
 
-import "@openzeppelin/contracts/governance/Governor.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
+import "./MessiahTokens.sol";
 
-contract MessiahSystem is
-    Governor,
-    GovernorSettings,
-    GovernorCountingSimple,
-    GovernorVotes,
-    GovernorVotesQuorumFraction
-{
-    address public originalToken;
-    address public mainMessiahToken;
-    mapping(address => address) private _messiahToken20List;
-    mapping(address => address) private _messiahToken721List;
+contract MessiahSystem {
+    // Time period before Messiah Tokens can be claimed.
+    uint256 private constant FREEZING_TIME = 2 weeks;
 
-    constructor(address _originalToken, IVotes _token)
-        Governor("MessiahSystem")
-        GovernorSettings(
-            1, /* Voting Delay -> 1 block */
-            45818, /* Voting Period -> 1 week */
-            0 /* Proposal Threshold -> 0 token */
-        )
-        GovernorVotes(_token)
-        GovernorVotesQuorumFraction(4)
-    {
-        originalToken = _originalToken;
-        mainMessiahToken = address(_token);
+    uint256 public deploymentTimestamp;
+    address public mainOriginalTokenAddress;
+    address public mainMessiahTokenAddress;
+    mapping(address => address) public toOriginalToken20;
+    mapping(address => address) public toOriginalToken721;
+    mapping(address => address) public toMessiahToken20;
+    mapping(address => address) public toMessiahToken721;
+
+    constructor(address originalTokenAddress) {
+        // deploy main Messiah Token
+        _deployMessiahToken721(originalTokenAddress);
+        // set information
+        deploymentTimestamp = block.timestamp;
+        mainOriginalTokenAddress = originalTokenAddress;
+        mainMessiahTokenAddress = toMessiahToken721[originalTokenAddress];
     }
+
+    function _deployMessiahToken20(address originalTokenAddress)
+        internal
+        beforeDeploy20(originalTokenAddress)
+    {
+        MessiahToken20 messiahToken = new MessiahToken20(
+            ERC20(originalTokenAddress).name(),
+            ERC20(originalTokenAddress).symbol(),
+            ERC20(originalTokenAddress).decimals()
+        );
+        toMessiahToken20[originalTokenAddress] = address(messiahToken);
+        toOriginalToken20[address(messiahToken)] = originalTokenAddress;
+    }
+
+    function _deployMessiahToken721(address originalTokenAddress)
+        internal
+        beforeDeploy721(originalTokenAddress)
+    {
+        MessiahToken721 messiahToken = new MessiahToken721(
+            ERC721(originalTokenAddress).name(),
+            ERC721(originalTokenAddress).symbol()
+        );
+        toMessiahToken721[originalTokenAddress] = address(messiahToken);
+        toOriginalToken721[address(messiahToken)] = originalTokenAddress;
+    }
+
+    function swapToMessiahToken20(address originalTokenAddress, uint256 amount)
+        public
+        afterDeploy20(originalTokenAddress)
+        afterFreezingTime
+    {
+        ERC20(originalTokenAddress).transferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
+        MessiahToken20(toMessiahToken20[originalTokenAddress]).transfer(
+            msg.sender,
+            amount
+        );
+    }
+
+    function swapToMessiahToken721(
+        address originalTokenAddress,
+        uint256 tokenId
+    ) public afterDeploy721(originalTokenAddress) afterFreezingTime {
+        // get original token
+        ERC721 originalToken = ERC721(originalTokenAddress);
+        originalToken.safeTransferFrom(msg.sender, address(this), tokenId);
+
+        // send messiah token
+        MessiahToken721 messiahToken = MessiahToken721(
+            toMessiahToken721[originalTokenAddress]
+        );
+        if (!messiahToken.exists(tokenId)) {
+            messiahToken.safeMint(address(this), tokenId);
+        }
+        messiahToken.setTokenURI(tokenId, originalToken.tokenURI(tokenId));
+        messiahToken.safeTransferFrom(address(this), msg.sender, tokenId);
+    }
+
+    // function changeFromMessiahToken20(
+    //     address _originalTokenAddress,
+    //     uint256 _amount
+    // ) {}
 
     function greet() public pure returns (string memory) {
         return "hello";
     }
 
-    // function deployMessiahToken20(
-    //     address originalTokenAddress,
-    //     string memory name,
-    //     string memory symbol
-    // ) public {
-    //     require(
-    //         _messiahToken20Address[originalTokenAddress] == address(0),
-    //         "Alternative for the token has already been deployed."
-    //     );
-    //     MessiahToken20 newToken = new MessiahToken20(name, symbol);
-    //     _messiahToken20Address[originalTokenAddress] = address(newToken);
-    // }
+    modifier beforeDeploy20(address originalTokenAddress) {
+        require(
+            toMessiahToken20[originalTokenAddress] == address(0),
+            "Messiah Token has already been deployed."
+        );
+        _;
+    }
+
+    modifier beforeDeploy721(address originalTokenAddress) {
+        require(
+            toMessiahToken721[originalTokenAddress] == address(0),
+            "Messiah Token has already been deployed."
+        );
+        _;
+    }
+
+    modifier afterDeploy20(address originalTokenAddress) {
+        require(
+            toMessiahToken20[originalTokenAddress] != address(0),
+            "Messiah Token does not deployed."
+        );
+        _;
+    }
+
+    modifier afterDeploy721(address originalTokenAddress) {
+        require(
+            toMessiahToken721[originalTokenAddress] != address(0),
+            "Messiah Token does not deployed."
+        );
+        _;
+    }
+
+    modifier afterFreezingTime() {
+        require(
+            block.timestamp > deploymentTimestamp + FREEZING_TIME,
+            "This operation cannot be executed yet."
+        );
+        _;
+    }
 
     // function deployMessiahToken721(
     //     address originalTokenAddress,
@@ -66,49 +149,4 @@ contract MessiahSystem is
     // }
 
     // The following functions are overrides required by Solidity.
-
-    function votingDelay()
-        public
-        view
-        override(IGovernor, GovernorSettings)
-        returns (uint256)
-    {
-        return super.votingDelay();
-    }
-
-    function votingPeriod()
-        public
-        view
-        override(IGovernor, GovernorSettings)
-        returns (uint256)
-    {
-        return super.votingPeriod();
-    }
-
-    function quorum(uint256 blockNumber)
-        public
-        view
-        override(IGovernor, GovernorVotesQuorumFraction)
-        returns (uint256)
-    {
-        return super.quorum(blockNumber);
-    }
-
-    function getVotes(address account, uint256 blockNumber)
-        public
-        view
-        override(IGovernor, GovernorVotes)
-        returns (uint256)
-    {
-        return super.getVotes(account, blockNumber);
-    }
-
-    function proposalThreshold()
-        public
-        view
-        override(Governor, GovernorSettings)
-        returns (uint256)
-    {
-        return super.proposalThreshold();
-    }
 }

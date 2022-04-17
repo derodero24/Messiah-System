@@ -5,44 +5,77 @@ import { ethers } from 'hardhat';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
 import {
-  ERC20,
-  ERC721,
   MessiahSystem,
+  MessiahSystem__factory,
   MessiahSystemFactory,
+  MessiahSystemFactory__factory,
+  MessiahToken20,
+  MessiahToken20__factory,
+  MessiahToken721,
+  MessiahToken721__factory,
+  SimpleERC20,
+  SimpleERC20__factory,
+  SimpleERC721,
+  SimpleERC721__factory,
 } from '../typechain-types';
 
 describe('Greeter', () => {
-  let originalToken20: ERC20;
-  let originalToken721: ERC721;
-  let user1: SignerWithAddress, user2: SignerWithAddress;
+  // Contract Factories
+  let _ERC20: SimpleERC20__factory;
+  let _ERC721: SimpleERC721__factory;
+  let _MessiahSystemFactory: MessiahSystemFactory__factory;
+  let _MessiahSystem: MessiahSystem__factory;
+  let _MessiahToken721: MessiahToken721__factory;
+  let _MessiahToken20: MessiahToken20__factory;
+
+  // Shared variables
+  let signers: SignerWithAddress[];
+  let mainNFT: SimpleERC721, relatedFT: SimpleERC20;
   let messiahSystemFactory: MessiahSystemFactory;
   let messiahSystem: MessiahSystem;
-
-  // let sampleToken1: ERC20;
+  let mainMessiahToken: MessiahToken721, relatedMessiahToken: MessiahToken20;
 
   before(async () => {
-    // Prepare original tokens
-    const _ERC20 = await ethers.getContractFactory('ERC20');
-    originalToken20 = await _ERC20.deploy('Original', 'ORG');
-    await originalToken20.deployed();
-    const _ERC721 = await ethers.getContractFactory('ERC721');
-    originalToken721 = await _ERC721.deploy('Original', 'ORG');
-    await originalToken721.deployed();
-
-    // Test users
-    [user1, user2] = await ethers.getSigners();
-
-    // Deploy factory contract
-    const _MessiahSystemFactory = await ethers.getContractFactory(
+    // Contract Factories
+    _ERC20 = await ethers.getContractFactory('SimpleERC20');
+    _ERC721 = await ethers.getContractFactory('SimpleERC721');
+    _MessiahSystemFactory = await ethers.getContractFactory(
       'MessiahSystemFactory'
     );
-    messiahSystemFactory = await _MessiahSystemFactory.deploy();
-    await messiahSystemFactory.deployed();
+    _MessiahSystem = await ethers.getContractFactory('MessiahSystem');
+    _MessiahToken721 = await ethers.getContractFactory('MessiahToken721');
+    _MessiahToken20 = await ethers.getContractFactory('MessiahToken20');
+
+    // Test signers
+    signers = await ethers.getSigners();
+
+    // Prepare original tokens
+    mainNFT = await _ERC721
+      .deploy('MainNFT', 'MNFT')
+      .then(contract => contract.deployed())
+      .then(token => {
+        token.safeMint(signers[0].address, 1);
+        token.safeMint(signers[1].address, 2);
+        return token;
+      });
+    relatedFT = await _ERC20
+      .deploy('RelatedFT', 'RFT')
+      .then(contract => contract.deployed())
+      .then(token => {
+        token.mint(signers[0].address, 100);
+        token.mint(signers[1].address, 200);
+        return token;
+      });
+
+    // Deploy factory contract
+    messiahSystemFactory = await _MessiahSystemFactory
+      .deploy()
+      .then(contract => contract.deployed());
   });
 
   it('Deploy new Messiah System', async () => {
     // before deploy
-    const targetAddress = originalToken721.address;
+    const targetAddress = mainNFT.address;
     let messiahSystemAddress = await messiahSystemFactory.messiahSystemAddress(
       targetAddress
     );
@@ -54,10 +87,26 @@ describe('Greeter', () => {
       targetAddress
     );
     expect(messiahSystemAddress).to.not.equal(constants.AddressZero);
-
-    // check greet function
-    const _MessiahSystem = await ethers.getContractFactory('MessiahSystem');
     messiahSystem = _MessiahSystem.attach(messiahSystemAddress);
+  });
+
+  it('Fetch Messiah System infomation', async () => {
+    // check greet function
+    const mainMessiahTokenAddress = await messiahSystem.mainMessiahToken();
+    expect(mainMessiahTokenAddress).to.not.equal(constants.AddressZero);
+    mainMessiahToken = _MessiahToken721.attach(mainMessiahTokenAddress);
+
+    // console.log(blockNumber);
+    // console.log(await (await mainNFT.balanceOf(signers[0].address)).toString());
+    // console.log(await mainNFT.name());
+    // console.log(await mainNFT.safeMint(signers[0].address, 1));
+    // console.log(await (await mainNFT.balanceOf(signers[0].address)).toString());
+    // console.log(
+    //   await (await relatedFT.balanceOf(signers[0].address)).toString()
+    // );
+    // console.log(await relatedFT.mint());
+    // console.log(await mainMessiahToken.getPastTotalSupply(blockNumber));
+
     expect(await messiahSystem.greet()).to.equal('hello');
-  }).timeout(60_000); // set 60 second timeout
+  });
 });
