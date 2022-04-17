@@ -1,26 +1,22 @@
-//SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
 import "hardhat/console.sol";
+
 import "./MessiahSystem.sol";
+import "./MessiahTokens.sol";
 
 contract MessiahSystemFactory {
-    struct MessiahInfo {
-        address messiahSystemAddress;
-        address messiahTokenAddress;
-    }
-
-    mapping(address => MessiahInfo) public messiahInfo;
+    mapping(address => address) public messiahSystemAddress;
 
     function deployMessiah(address originalTokenAddress)
         external
-        returns (MessiahInfo memory)
+        returns (address)
     {
         // Deploy Messiah Contract
         // TODO: ERC721トークンのアドレスかをチェック
         require(
-            messiahInfo[originalTokenAddress].messiahSystemAddress ==
-                address(0),
+            messiahSystemAddress[originalTokenAddress] == address(0),
             "Messiah for the token has already been deployed."
         );
 
@@ -36,12 +32,9 @@ contract MessiahSystemFactory {
             originalTokenAddress,
             newMessiahToken
         );
-        messiahInfo[originalTokenAddress] = MessiahInfo(
-            address(newMessiahSystem),
-            address(newMessiahToken)
-        );
+        messiahSystemAddress[originalTokenAddress] = address(newMessiahSystem);
 
         // Return Messiah Information
-        return messiahInfo[originalTokenAddress];
+        return messiahSystemAddress[originalTokenAddress];
     }
 }

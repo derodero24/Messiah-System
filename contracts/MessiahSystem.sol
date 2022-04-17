@@ -1,20 +1,36 @@
-//SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
 import "hardhat/console.sol";
-import "./MessiahTokens.sol";
+
 import "@openzeppelin/contracts/governance/Governor.sol";
-import "@openzeppelin/contracts/governance/compatibility/GovernorCompatibilityBravo.sol";
+import "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
+import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 
-contract MessiahSystem {
+contract MessiahSystem is
+    Governor,
+    GovernorSettings,
+    GovernorCountingSimple,
+    GovernorVotes,
+    GovernorVotesQuorumFraction
+{
     address public originalToken;
     address public mainMessiahToken;
     mapping(address => address) private _messiahToken20List;
     mapping(address => address) private _messiahToken721List;
 
-    constructor(address _originalToken, IVotes _token) {
+    constructor(address _originalToken, IVotes _token)
+        Governor("MessiahSystem")
+        GovernorSettings(
+            1, /* Voting Delay -> 1 block */
+            45818, /* Voting Period -> 1 week */
+            0 /* Proposal Threshold -> 0 token */
+        )
+        GovernorVotes(_token)
+        GovernorVotesQuorumFraction(4)
+    {
         originalToken = _originalToken;
         mainMessiahToken = address(_token);
     }
@@ -22,18 +38,6 @@ contract MessiahSystem {
     function greet() public pure returns (string memory) {
         return "hello";
     }
-
-    // function votingDelay() public pure override returns (uint256) {
-    //     return 6575; // 1 day
-    // }
-
-    // function votingPeriod() public pure override returns (uint256) {
-    //     return 46027; // 1 week
-    // }
-
-    // function proposalThreshold() public pure override returns (uint256) {
-    //     return 0;
-    // }
 
     // function deployMessiahToken20(
     //     address originalTokenAddress,
@@ -61,41 +65,50 @@ contract MessiahSystem {
     //     _messiahToken721Address[originalTokenAddress] = address(newToken);
     // }
 
-    // // The functions below are overrides required by Solidity.
+    // The following functions are overrides required by Solidity.
 
-    // function quorum(uint256 blockNumber)
-    //     public
-    //     view
-    //     override(IGovernor, GovernorVotesQuorumFraction)
-    //     returns (uint256)
-    // {
-    //     return super.quorum(blockNumber);
-    // }
+    function votingDelay()
+        public
+        view
+        override(IGovernor, GovernorSettings)
+        returns (uint256)
+    {
+        return super.votingDelay();
+    }
 
-    // function getVotes(address account, uint256 blockNumber)
-    //     public
-    //     view
-    //     override(IGovernor, GovernorVotes)
-    //     returns (uint256)
-    // {
-    //     return super.getVotes(account, blockNumber);
-    // }
+    function votingPeriod()
+        public
+        view
+        override(IGovernor, GovernorSettings)
+        returns (uint256)
+    {
+        return super.votingPeriod();
+    }
 
-    // function state(uint256 proposalId)
-    //     public
-    //     view
-    //     override(Governor, IGovernor)
-    //     returns (ProposalState)
-    // {
-    //     return super.state(proposalId);
-    // }
+    function quorum(uint256 blockNumber)
+        public
+        view
+        override(IGovernor, GovernorVotesQuorumFraction)
+        returns (uint256)
+    {
+        return super.quorum(blockNumber);
+    }
 
-    // function propose(
-    //     address[] memory targets,
-    //     uint256[] memory values,
-    //     bytes[] memory calldatas,
-    //     string memory description
-    // ) public override(Governor, GovernorCompatibilityBravo) returns (uint256) {
-    //     return super.propose(targets, values, calldatas, description);
-    // }
+    function getVotes(address account, uint256 blockNumber)
+        public
+        view
+        override(IGovernor, GovernorVotes)
+        returns (uint256)
+    {
+        return super.getVotes(account, blockNumber);
+    }
+
+    function proposalThreshold()
+        public
+        view
+        override(Governor, GovernorSettings)
+        returns (uint256)
+    {
+        return super.proposalThreshold();
+    }
 }
