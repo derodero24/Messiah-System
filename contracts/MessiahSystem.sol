@@ -86,10 +86,35 @@ contract MessiahSystem {
         messiahToken.safeTransferFrom(address(this), msg.sender, tokenId);
     }
 
-    // function changeFromMessiahToken20(
-    //     address _originalTokenAddress,
-    //     uint256 _amount
-    // ) {}
+    function swapToOriginalToken20(address messiahTokenAddress, uint256 amount)
+        public
+    {
+        MessiahToken20(messiahTokenAddress).transferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
+        ERC20(toOriginalToken20[messiahTokenAddress]).transfer(
+            msg.sender,
+            amount
+        );
+    }
+
+    function swapToOriginalToken721(
+        address messiahTokenAddress,
+        uint256 tokenId
+    ) public {
+        MessiahToken721(messiahTokenAddress).safeTransferFrom(
+            msg.sender,
+            address(this),
+            tokenId
+        );
+        ERC721(toOriginalToken721[messiahTokenAddress]).safeTransferFrom(
+            address(this),
+            msg.sender,
+            tokenId
+        );
+    }
 
     function greet() public pure returns (string memory) {
         return "hello";
@@ -134,19 +159,4 @@ contract MessiahSystem {
         );
         _;
     }
-
-    // function deployMessiahToken721(
-    //     address originalTokenAddress,
-    //     string memory name,
-    //     string memory symbol
-    // ) public {
-    //     require(
-    //         _messiahToken721Address[originalTokenAddress] == address(0),
-    //         "Alternative for the token has already been deployed."
-    //     );
-    //     MessiahToken721 newToken = new MessiahToken721(name, symbol);
-    //     _messiahToken721Address[originalTokenAddress] = address(newToken);
-    // }
-
-    // The following functions are overrides required by Solidity.
 }
