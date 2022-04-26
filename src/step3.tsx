@@ -197,7 +197,7 @@ function Step3(){
 
     return(
       <div>
-        <Typography variant="h3" gutterBottom>Decided Proposals</Typography>
+        <Typography variant="h3" gutterBottom>Proposal Entry</Typography>
         <ProposalTable data={dummy_proposal}/>
 
         <Box m={5}>

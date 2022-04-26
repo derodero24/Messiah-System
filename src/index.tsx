@@ -1,13 +1,15 @@
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+//import { createRoot } from 'react-dom/client';
+import ReactDOM from "react-dom";
 
 import App from './App';
 import WalletProvider from './ethereum/WalletProvider';
 
-createRoot(document.getElementById('root') as HTMLElement).render(
+ReactDOM.render(
   <React.StrictMode>
     <WalletProvider>
       <App />
     </WalletProvider>
-  </React.StrictMode>
+  </React.StrictMode>,
+  document.getElementById("root"),
 );

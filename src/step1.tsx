@@ -7,7 +7,21 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
-import { Button, Typography } from "@mui/material";
+import { Button, Typography, Box, Grid } from "@mui/material";
+import { ApolloClient, ApolloProvider, InMemoryCache, useQuery } from "@apollo/client";
+import GET_TRANSFERS from "./graphql/subgraph";
+
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Doughnut } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
+
+
+const client = new ApolloClient({
+  cache: new InMemoryCache(),
+  uri: "https://api.studio.thegraph.com/query/26120/testgraph/v0.0.5",
+});
+
 
 
 function BasicTable(props: { data: any[]; funcVote:(address:string)=>void; }) {
@@ -51,6 +65,95 @@ const dummy_balance = [
     {"wallet":"0x09275925863", "balance":242, "ratio":10.5},
 ];
 
+const first:any = {
+  labels: [],
+  datasets: [
+    {
+      label: '# of Votes',
+      data: [],
+      backgroundColor: [
+      ],
+      borderColor: [
+      ],
+      borderWidth: 1,
+    },
+  ],
+};
+
+function TokenBalanceGraph() {
+  // Read more about useDapp on https://usedapp.io/
+
+  const { loading, error: subgraphQueryError, data } = useQuery(GET_TRANSFERS);
+  const [tokenHolders, setTokenHolders] = React.useState([]);
+  const [graphData, setGraphData] = React.useState(first);
+
+  React.useEffect(() => {
+    if (!loading && !subgraphQueryError && data) {
+      setTokenHolders(data.accountTokenBalances);
+      makeGraphData(data.accountTokenBalances);
+    }
+  }, [loading, subgraphQueryError, data]);
+
+
+  const makeGraphData =async(source:any)=>{
+    const labels:any[] = [];
+    const values:number[] = [];
+    const bac_list:string[] = [];
+    const boc_list:string[] = [];
+    console.log(source);
+
+    source.forEach((tokenHolder: { id: any; balance: number; }) => {
+      const r = String(Math.floor( Math.random() * 256 ));
+      const g = String(Math.floor( Math.random() * 256 ));
+      const b = String(Math.floor( Math.random() * 256 ));
+      const bac = `rgba(${r}, ${g}, ${b}, 0.2)`;
+      const boc = `rgba(${r}, ${g}, ${b}, 1)`;
+
+      labels.push(tokenHolder.id);
+      values.push(tokenHolder.balance);
+      bac_list.push(bac);
+      boc_list.push(boc);
+    });
+    
+    const tmp = {
+      labels:labels,
+      datasets:[
+        {
+          label: '# of Votes',
+          data:values,
+          backgroundColor:bac_list,
+          borderColor:boc_list,
+          borderWidth: 1,
+        },
+      ]
+    }
+
+    setGraphData(tmp);
+    console.log(tmp);
+  }
+
+  return (
+    <div>
+      <Grid container>
+        <Grid item xs={6}>
+          {tokenHolders.map((tokenHolder:any) => (
+          <div key={tokenHolder.id} style={{ margin: "20px" }}>
+            <div>アドレス： {tokenHolder.id}</div>
+            <div>残高： {tokenHolder.balance}</div>
+          </div>
+        ))}
+        </Grid>
+        <Grid item xs={6}>
+          <Box sx={{width:"75%"}}>
+            <Doughnut data={graphData} />
+          </Box>
+        </Grid>
+      </Grid>
+    </div>
+  );
+}
+
+
 function Step1(){
     const [data, setData] = React.useState([{}]);
     const [blacklist, setBlacklist] = React.useState<string[]>([]);
@@ -84,6 +187,10 @@ function Step1(){
       <div>
         <Typography variant="h3" gutterBottom>Expelled From Paradise</Typography>
 
+        <ApolloProvider client={client}>
+          <TokenBalanceGraph/>
+        </ApolloProvider>
+
         <BasicTable data={data} funcVote={vote}/>
 
         <Typography variant="h4" gutterBottom>Blacklist</Typography>
@@ -95,6 +202,7 @@ function Step1(){
           );
         })}
         <Button onClick={submitBlacklist}>submit Blacklist</Button>
+
 
         <Typography variant="h4" gutterBottom>Go Eden</Typography>
         <Button onClick={claimPressed}>Claim new coin</Button>
