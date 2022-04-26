@@ -2,6 +2,7 @@
 /cache
 /coverage
 /node_modules
+/testgraph/node_modules
 /typechain-types
 
 /.DS_store

@@ -10,7 +10,7 @@
     "serve": "npx hardhat node",
     "test": "npx hardhat test",
     "build": "react-scripts build",
-    "start": "HTTPS=true react-scripts start"
+    "start": "react-scripts start"
   },
   "browserslist": {
     "production": [
@@ -45,12 +45,21 @@
     "ethereum-waffle": "^3.4.4",
     "ethers": "^5.6.2",
     "hardhat": "^2.9.2",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
     "react-scripts": "^5.0.0",
     "solidity-coverage": "^0.7.20",
     "ts-node": "^10.7.0",
     "typechain": "^8.0.0",
     "typescript": "^4.6.3"
+  },
+  "dependencies": {
+    "@apollo/client": "^3.5.10",
+    "@emotion/react": "^11.9.0",
+    "@emotion/styled": "^11.8.1",
+    "@mui/icons-material": "^5.6.1",
+    "@mui/material": "^5.6.1",
+    "chart.js": "^3.7.1",
+    "react": "^17.0.2",
+    "react-chartjs-2": "^4.1.0",
+    "react-dom": "^17.0.2"
   }
 }
