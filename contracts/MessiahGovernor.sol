@@ -20,16 +20,12 @@ contract MessiahGovernor is
         Governor("MessiahSystem")
         GovernorSettings(
             1, /* Voting Delay -> 1 block */
-            45818, /* Voting Period -> 1 week */
+            48774, /* Voting Period -> 1 week (1 block = 12.4 sec) */
             0 /* Proposal Threshold -> 0 token */
         )
         GovernorVotes(_token)
         GovernorVotesQuorumFraction(4)
     {}
-
-    function greet() public pure returns (string memory) {
-        return "hello";
-    }
 
     // The following functions are overrides required by Solidity.
 
@@ -60,14 +56,14 @@ contract MessiahGovernor is
         return super.quorum(blockNumber);
     }
 
-    function getVotes(address account, uint256 blockNumber)
-        public
-        view
-        override(IGovernor, GovernorVotes)
-        returns (uint256)
-    {
-        return super.getVotes(account, blockNumber);
-    }
+    // function getVotes(address account, uint256 blockNumber)
+    //     public
+    //     view
+    //     override(IGovernor, GovernorVotes)
+    //     returns (uint256)
+    // {
+    //     return super.getVotes(account, blockNumber);
+    // }
 
     function proposalThreshold()
         public
