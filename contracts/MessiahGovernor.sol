@@ -16,6 +16,14 @@ contract MessiahGovernor is
     GovernorVotes,
     GovernorVotesQuorumFraction
 {
+    struct Proposal {
+        uint256 timestamp;
+        string title;
+        string discription;
+    }
+
+    mapping(uint256 => Proposal) public proposals;
+
     constructor(IVotes _token)
         Governor("MessiahSystem")
         GovernorSettings(

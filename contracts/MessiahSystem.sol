@@ -19,22 +19,18 @@ contract MessiahSystem {
     // Time period before Messiah Tokens can be claimed.
     uint256 private constant FREEZING_TIME = 2 weeks;
 
+    // info
     uint256 public deploymentTimestamp;
-    TokenInfo public mainOriginalTokenInfo;
-    TokenInfo public mainMessiahTokenInfo;
+    address public mainTokenAddress;
+    address[] public bannedAddresses; // 運営アカウント
+
+    // Related tokens
     mapping(address => TokenInfo) public toOriginalTokenInfo;
     mapping(address => TokenInfo) public toMessiahTokenInfo;
 
-    constructor(address originalTokenAddress) {
-        // deploy main Messiah Token
-        _deployMessiahToken721(originalTokenAddress);
-        // set information
+    constructor(address mainTokenAddress) {
         deploymentTimestamp = block.timestamp;
-        mainOriginalTokenInfo = TokenInfo(
-            Standard.ERC721,
-            originalTokenAddress
-        );
-        mainMessiahTokenInfo = toMessiahTokenInfo[originalTokenAddress];
+        mainTokenAddress = mainTokenAddress;
     }
 
     modifier afterFreezingTime() {
