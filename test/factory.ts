@@ -3,48 +3,62 @@ import { ethers } from 'hardhat';
 
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
-import { MessiahSystemFactory, SimpleERC721 } from '../typechain-types';
+import {
+  MessiahSystemFactory,
+  SimpleERC20,
+  SimpleERC721,
+} from '../typechain-types';
 
 describe('Factory', () => {
   // Shared variables
   let signers: SignerWithAddress[];
-  let token: SimpleERC721;
+  let mainToken: SimpleERC721;
+  let subToken: SimpleERC20;
   let factory: MessiahSystemFactory;
 
   before(async () => {
     // Test signers
     signers = await ethers.getSigners();
 
-    // NFT
-    const _SimpleERC721 = await ethers.getContractFactory('SimpleERC721');
-    token = await _SimpleERC721
-      .deploy('MainNFT', 'MNFT')
-      .then(contract => contract.deployed())
-      .then(token => {
-        token.safeMint(signers[0].address, 1);
-        return token;
-      });
-
-    // MessiahSystemFactory
-    const _MessiahSystemFactory = await ethers.getContractFactory(
-      'MessiahSystemFactory'
+    // Main Token (ERC721)
+    mainToken = await ethers.getContractFactory('SimpleERC721').then(factory =>
+      factory
+        .deploy('Main', 'MT')
+        .then(contract => contract.deployed())
+        .then(token => {
+          token.safeMint(signers[0].address, 1);
+          return token;
+        })
     );
-    factory = await _MessiahSystemFactory
-      .deploy()
-      .then(contract => contract.deployed());
+
+    // Sub Token (ERC20)
+    subToken = await ethers.getContractFactory('SimpleERC20').then(factory =>
+      factory
+        .deploy('Sub', 'ST')
+        .then(contract => contract.deployed())
+        .then(token => {
+          token.mint(signers[0].address, 100);
+          return token;
+        })
+    );
+
+    // Messiah System Factory
+    factory = await ethers
+      .getContractFactory('MessiahSystemFactory')
+      .then(factory => factory.deploy().then(contract => contract.deployed()));
   });
 
   it('before deploy Messiah-System', async function () {
     const messiahSystemAddress = await factory.messiahSystemAddress(
-      token.address
+      mainToken.address
     );
     expect(messiahSystemAddress).to.equal(ethers.constants.AddressZero);
   });
 
   it('after deploy Messiah-System', async function () {
-    await factory.deployMessiahSystem(token.address);
+    await factory.deployMessiahSystem(mainToken.address, subToken.address);
     const messiahSystemAddress = await factory.messiahSystemAddress(
-      token.address
+      mainToken.address
     );
     expect(messiahSystemAddress).to.not.equal(ethers.constants.AddressZero);
   });
