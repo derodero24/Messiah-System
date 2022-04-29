@@ -3,12 +3,12 @@ import { ethers } from 'hardhat';
 
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
-import { MessiahSystemFactory, MessiahToken721 } from '../typechain-types';
+import { MessiahSystemFactory, SimpleERC721 } from '../typechain-types';
 
 describe('Factory', () => {
   // Shared variables
   let signers: SignerWithAddress[];
-  let token: MessiahToken721;
+  let token: SimpleERC721;
   let factory: MessiahSystemFactory;
 
   before(async () => {
@@ -16,8 +16,8 @@ describe('Factory', () => {
     signers = await ethers.getSigners();
 
     // NFT
-    const _MessiahToken721 = await ethers.getContractFactory('MessiahToken721');
-    token = await _MessiahToken721
+    const _SimpleERC721 = await ethers.getContractFactory('SimpleERC721');
+    token = await _SimpleERC721
       .deploy('MainNFT', 'MNFT')
       .then(contract => contract.deployed())
       .then(token => {
