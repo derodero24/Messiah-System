@@ -8,20 +8,18 @@ import "./MessiahSystem.sol";
 contract MessiahSystemFactory {
     mapping(address => address) public messiahSystemAddress;
 
-    function deployMessiahSystem(address originalTokenAddress)
-        external
-        returns (address)
-    {
-        // Deploy Messiah System
-        // TODO: ERC721トークンのアドレスかをチェック
+    function deployMessiahSystem(
+        address mainTokenAddress, // ERC721
+        address subTokenAddress // ERC20
+    ) external returns (address) {
         require(
-            messiahSystemAddress[originalTokenAddress] == address(0),
+            messiahSystemAddress[mainTokenAddress] == address(0),
             "Messiah for the token has already been deployed."
         );
-        MessiahSystem ms = new MessiahSystem(originalTokenAddress);
-        messiahSystemAddress[originalTokenAddress] = address(ms);
+        MessiahSystem ms = new MessiahSystem(mainTokenAddress, subTokenAddress);
+        messiahSystemAddress[mainTokenAddress] = address(ms);
 
         // Return Messiah Information
-        return messiahSystemAddress[originalTokenAddress];
+        return messiahSystemAddress[mainTokenAddress];
     }
 }
