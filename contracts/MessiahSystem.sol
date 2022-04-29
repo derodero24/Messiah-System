@@ -40,15 +40,16 @@ contract MessiahSystem {
             subOriginalTokenAddress != address(0),
             "Sub token doesn't set yet."
         );
-        require(
-            block.timestamp > deploymentTimestamp + FREEZING_TIME,
-            "This operation cannot be executed yet."
-        );
+        // require(
+        //     block.timestamp > deploymentTimestamp + FREEZING_TIME,
+        //     "This operation cannot be executed yet."
+        // );
         require(hasClaimed[msg.sender] == false, "You are already claimed.");
         uint256 amount = _fetchClaimableAmount(
             subOriginalTokenAddress,
             msg.sender
         );
+        hasClaimed[msg.sender] = true;
         MessiahToken20(subMessiahTokenAddress).transfer(msg.sender, amount);
     }
 

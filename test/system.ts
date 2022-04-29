@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { assert, AssertionError, expect } from 'chai';
 import { constants } from 'ethers/lib/index';
 import { ethers } from 'hardhat';
 
@@ -6,107 +6,92 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
 import {
   MessiahSystem,
-  MessiahSystem__factory,
   MessiahSystemFactory,
-  MessiahSystemFactory__factory,
   MessiahToken20,
-  MessiahToken20__factory,
-  MessiahToken721,
-  MessiahToken721__factory,
   SimpleERC20,
-  SimpleERC20__factory,
   SimpleERC721,
-  SimpleERC721__factory,
 } from '../typechain-types';
 
-describe('Index', () => {
-  // Contract Factories
-  let _ERC20: SimpleERC20__factory;
-  let _ERC721: SimpleERC721__factory;
-  let _MessiahSystemFactory: MessiahSystemFactory__factory;
-  let _MessiahSystem: MessiahSystem__factory;
-  let _MessiahToken721: MessiahToken721__factory;
-  let _MessiahToken20: MessiahToken20__factory;
-
+describe('System', () => {
   // Shared variables
   let signers: SignerWithAddress[];
-  let mainNFT: SimpleERC721, relatedFT: SimpleERC20;
-  let messiahSystemFactory: MessiahSystemFactory;
-  let messiahSystem: MessiahSystem;
-  let mainMessiahToken: MessiahToken721, relatedMessiahToken: MessiahToken20;
+  let mainToken: SimpleERC721;
+  let subToken: SimpleERC20;
+  let newSubToken: MessiahToken20;
+  let factory: MessiahSystemFactory;
+  let system: MessiahSystem;
 
   before(async () => {
-    // Contract Factories
-    _ERC20 = await ethers.getContractFactory('SimpleERC20');
-    _ERC721 = await ethers.getContractFactory('SimpleERC721');
-    _MessiahSystemFactory = await ethers.getContractFactory(
-      'MessiahSystemFactory'
-    );
-    _MessiahSystem = await ethers.getContractFactory('MessiahSystem');
-    _MessiahToken721 = await ethers.getContractFactory('MessiahToken721');
-    _MessiahToken20 = await ethers.getContractFactory('MessiahToken20');
-
     // Test signers
     signers = await ethers.getSigners();
 
-    // Prepare original tokens
-    mainNFT = await _ERC721
-      .deploy('MainNFT', 'MNFT')
-      .then(contract => contract.deployed())
-      .then(token => {
-        token.safeMint(signers[0].address, 1);
-        token.safeMint(signers[1].address, 2);
-        return token;
-      });
-    relatedFT = await _ERC20
-      .deploy('RelatedFT', 'RFT')
-      .then(contract => contract.deployed())
-      .then(token => {
-        token.mint(signers[0].address, 100);
-        token.mint(signers[1].address, 200);
-        return token;
-      });
+    // Main Token (ERC721)
+    mainToken = await ethers.getContractFactory('SimpleERC721').then(factory =>
+      factory
+        .deploy('Main', 'MT')
+        .then(contract => contract.deployed())
+        .then(token => {
+          token.safeMint(signers[0].address, 1);
+          return token;
+        })
+    );
 
-    // Deploy factory contract
-    messiahSystemFactory = await _MessiahSystemFactory
-      .deploy()
-      .then(contract => contract.deployed());
+    // Sub Token (ERC20)
+    subToken = await ethers.getContractFactory('SimpleERC20').then(factory =>
+      factory
+        .deploy('Sub', 'ST')
+        .then(contract => contract.deployed())
+        .then(token => {
+          token.mint(signers[0].address, 100);
+          return token;
+        })
+    );
+
+    // Messiah System Factory
+    factory = await ethers
+      .getContractFactory('MessiahSystemFactory')
+      .then(factory => factory.deploy().then(contract => contract.deployed()));
   });
 
   it('Deploy new Messiah System', async () => {
-    // before deploy
-    const targetAddress = mainNFT.address;
-    let messiahSystemAddress = await messiahSystemFactory.messiahSystemAddress(
-      targetAddress
+    await factory.deployMessiahSystem(mainToken.address, subToken.address);
+    const messiahSystemAddress = await factory.messiahSystemAddress(
+      mainToken.address
     );
-    expect(messiahSystemAddress).to.equal(constants.AddressZero);
-
-    // after deploy
-    await messiahSystemFactory.deployMessiahSystem(targetAddress);
-    messiahSystemAddress = await messiahSystemFactory.messiahSystemAddress(
-      targetAddress
-    );
-    expect(messiahSystemAddress).to.not.equal(constants.AddressZero);
-    // messiahSystem = _MessiahSystem.attach(messiahSystemAddress);
+    system = await ethers
+      .getContractFactory('MessiahSystem')
+      .then(factory => factory.attach(messiahSystemAddress));
   });
 
-  // it('Fetch Messiah System infomation', async () => {
-  //   // check greet function
-  //   const mainMessiahTokenAddress = await messiahSystem.mainMessiahToken();
-  //   expect(mainMessiahTokenAddress).to.not.equal(constants.AddressZero);
-  //   mainMessiahToken = _MessiahToken721.attach(mainMessiahTokenAddress);
+  it('Chake token addresses', async () => {
+    expect(await system.mainOriginalTokenAddress()).to.not.equal(
+      constants.AddressZero
+    );
+    expect(await system.subOriginalTokenAddress()).to.not.equal(
+      constants.AddressZero
+    );
+    expect(await system.subMessiahTokenAddress()).to.not.equal(
+      constants.AddressZero
+    );
+  });
 
-  //   // console.log(blockNumber);
-  //   // console.log(await (await mainNFT.balanceOf(signers[0].address)).toString());
-  //   // console.log(await mainNFT.name());
-  //   // console.log(await mainNFT.safeMint(signers[0].address, 1));
-  //   // console.log(await (await mainNFT.balanceOf(signers[0].address)).toString());
-  //   // console.log(
-  //   //   await (await relatedFT.balanceOf(signers[0].address)).toString()
-  //   // );
-  //   // console.log(await relatedFT.mint());
-  //   // console.log(await mainMessiahToken.getPastTotalSupply(blockNumber));
+  it('Claim new sub token', async () => {
+    const newSubTokenAddress = await system.subMessiahTokenAddress();
+    newSubToken = await ethers
+      .getContractFactory('MessiahToken20')
+      .then(factory => factory.attach(newSubTokenAddress));
+    expect(await newSubToken.balanceOf(signers[0].address)).to.equal(0);
+    await system.connect(signers[0]).claimSubToken();
+    expect(await newSubToken.balanceOf(signers[0].address)).to.not.equal(0);
+  });
 
-  //   expect(await messiahSystem.greet()).to.equal('hello');
-  // });
+  it('Cannot claim new sub token again', async () => {
+    // Should be error
+    try {
+      await system.connect(signers[0]).claimSubToken();
+      assert.fail();
+    } catch (e) {
+      if (e instanceof AssertionError) assert.fail();
+    }
+  });
 });

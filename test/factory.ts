@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { assert, AssertionError, expect } from 'chai';
 import { ethers } from 'hardhat';
 
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -48,18 +48,28 @@ describe('Factory', () => {
       .then(factory => factory.deploy().then(contract => contract.deployed()));
   });
 
-  it('before deploy Messiah-System', async function () {
+  it('Before deploy Messiah-System', async function () {
     const messiahSystemAddress = await factory.messiahSystemAddress(
       mainToken.address
     );
     expect(messiahSystemAddress).to.equal(ethers.constants.AddressZero);
   });
 
-  it('after deploy Messiah-System', async function () {
+  it('After deploy Messiah-System', async function () {
     await factory.deployMessiahSystem(mainToken.address, subToken.address);
     const messiahSystemAddress = await factory.messiahSystemAddress(
       mainToken.address
     );
     expect(messiahSystemAddress).to.not.equal(ethers.constants.AddressZero);
+  });
+
+  it('Cannot deploy same Messiah-System', async function () {
+    // Should be error
+    try {
+      await factory.deployMessiahSystem(mainToken.address, subToken.address);
+      assert.fail();
+    } catch (e) {
+      if (e instanceof AssertionError) assert.fail();
+    }
   });
 });
