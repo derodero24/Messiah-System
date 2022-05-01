@@ -1,5 +1,5 @@
 import { assert, AssertionError, expect } from 'chai';
-import { constants } from 'ethers/lib/index';
+import { BigNumber, constants } from 'ethers/lib/index';
 import { ethers } from 'hardhat';
 
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -93,5 +93,19 @@ describe('System', () => {
     } catch (e) {
       if (e instanceof AssertionError) assert.fail();
     }
+  });
+
+  it('Propose something', async () => {
+    const receipt = await (
+      await system.propose('title', 'Some proposal')
+    ).wait();
+
+    const proposalId: BigNumber = receipt.events?.[0].args?.proposalId;
+    expect(proposalId.toString()).to.not.equal('0');
+
+    const proposal = await system.connect(signers[0]).proposalMap(proposalId);
+    expect(proposal.proposer).to.equal(signers[0].address);
+    expect(proposal.title).to.equal('title');
+    expect(proposal.description).to.equal('Some proposal');
   });
 });

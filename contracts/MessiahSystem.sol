@@ -6,8 +6,13 @@ import "hardhat/console.sol";
 import "./MessiahTokens.sol";
 
 contract MessiahSystem {
+    /* ########## Event ########## */
+    event Propose(address indexed proposer, uint256 proposalId);
+
+    /* ########## Struct ########## */
+
     struct Proposal {
-        bytes32 id;
+        uint256 id;
         uint256 timestamp;
         address proposer;
         string title;
@@ -22,6 +27,8 @@ contract MessiahSystem {
         string url;
     }
 
+    /* ########## Variable ########## */
+
     // constants
     uint256 private constant VOTING_PERIOD = 1 weeks;
 
@@ -32,10 +39,10 @@ contract MessiahSystem {
     address public subMessiahTokenAddress; // ERC20
 
     address[] public blacklist; // 運営アカウント
-    bytes32[] public proposalIds;
+    uint256[] public proposalIds;
 
-    mapping(bytes32 => Proposal) public proposalMap;
-    mapping(bytes32 => mapping(address => Candidate)) public candidateMap;
+    mapping(uint256 => Proposal) public proposalMap;
+    mapping(uint256 => mapping(address => Candidate)) public candidateMap;
     mapping(address => bool) public hasClaimed; // サブトークンをclaim済みか
 
     /* ########## Constructor ########## */
@@ -55,21 +62,18 @@ contract MessiahSystem {
 
     /* ########## External Functions ########## */
 
-    function propose(string memory title, string memory description)
-        external
-        returns (bytes32)
-    {
-        return _propose(msg.sender, title, description);
+    function propose(string memory title, string memory description) external {
+        _propose(msg.sender, title, description);
     }
 
     function runForProposal(
-        bytes32 proposalId,
+        uint256 proposalId,
         string memory name,
         string memory url
     ) external {
         // 立候補
         Proposal memory proposal = proposalMap[proposalId];
-        require(proposal.id != 0, "Invalid proposal ID.");
+        require(proposal.timestamp != 0, "Invalid proposal ID.");
         require(
             block.timestamp < proposal.timestamp + VOTING_PERIOD,
             "This operation cannot be executed any more."
@@ -111,11 +115,9 @@ contract MessiahSystem {
         address proposer,
         string memory title,
         string memory description
-    ) private returns (bytes32) {
+    ) private {
         uint256 timestamp = block.timestamp;
-        bytes32 id = keccak256(
-            abi.encodePacked(timestamp, proposer, title, description)
-        );
+        uint256 id = _createProposalId(timestamp, proposer, title, description);
         address[] memory candidates;
         Proposal memory proposal = Proposal(
             id,
@@ -128,7 +130,7 @@ contract MessiahSystem {
         );
         proposalIds.push(id);
         proposalMap[id] = proposal;
-        return id;
+        emit Propose(proposer, id);
     }
 
     function _setSubToken(address originalTokenAddress) private {
@@ -148,6 +150,20 @@ contract MessiahSystem {
         );
         subOriginalTokenAddress = originalTokenAddress;
         subMessiahTokenAddress = address(messiahToken);
+    }
+
+    function _createProposalId(
+        uint256 timestamp,
+        address proposer,
+        string memory title,
+        string memory description
+    ) private pure returns (uint256) {
+        return
+            uint256(
+                keccak256(
+                    abi.encodePacked(timestamp, proposer, title, description)
+                )
+            );
     }
 
     /* ########## Oracle Functions ########## */
