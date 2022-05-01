@@ -9,7 +9,11 @@ contract MessiahSystem {
     /* ########## Event ########## */
     event Propose(address indexed proposer, uint256 proposalId);
 
-    /* ########## Struct ########## */
+    /* ########## Enum/Struct ########## */
+    // enum Vote {
+    //     For,
+    //     Against,
+    // }
 
     struct Proposal {
         uint256 id;
@@ -17,7 +21,6 @@ contract MessiahSystem {
         address proposer;
         string title;
         string description;
-        address[] candidates;
         uint256 totalVotes;
     }
 
@@ -29,8 +32,9 @@ contract MessiahSystem {
 
     /* ########## Variable ########## */
 
-    // constants
-    uint256 private constant VOTING_PERIOD = 1 weeks;
+    // constant
+    uint256 public constant VOTING_PERIOD = 1 weeks;
+    uint256 public constant DATA_PER_PAGE = 100;
 
     // info
     uint256 public deploymentTimestamp;
@@ -38,11 +42,18 @@ contract MessiahSystem {
     address public subOriginalTokenAddress; // ERC20
     address public subMessiahTokenAddress; // ERC20
 
-    address[] public blacklist; // 運営アカウント
-    uint256[] public proposalIds;
+    // Proposal管理 (proposal ID -> info)
+    uint256[] private _proposalIds;
+    mapping(uint256 => Proposal) public proposals;
 
-    mapping(uint256 => Proposal) public proposalMap;
-    mapping(uint256 => mapping(address => Candidate)) public candidateMap;
+    // Candidate管理 (proposal ID -> proposer address -> info)
+    mapping(uint256 => address[]) private _candidateAddresses;
+    mapping(uint256 => mapping(address => Candidate)) public candidates;
+
+    // Vote管理 (proposal ID -> voter address -> info)
+    // mapping(uint256 => mapping(address => Candidate)) public VoteMap;
+
+    address[] public blacklist; // 運営アカウント
     mapping(address => bool) public hasClaimed; // サブトークンをclaim済みか
 
     /* ########## Constructor ########## */
@@ -60,7 +71,59 @@ contract MessiahSystem {
 
     /* ########## Modifiers ########## */
 
-    /* ########## External Functions ########## */
+    /* ########## Pure/View External Functions ########## */
+
+    function getProposals(uint256 page)
+        external
+        view
+        returns (Proposal[] memory)
+    {
+        // Proposal一覧
+        uint256 originalLength = _proposalIds.length;
+        if (originalLength <= DATA_PER_PAGE * (page - 1)) {
+            return new Proposal[](0);
+        }
+
+        uint256 returnLength = DATA_PER_PAGE;
+        if (originalLength < DATA_PER_PAGE * (page + 1)) {
+            returnLength = originalLength - DATA_PER_PAGE * (page - 1);
+        }
+
+        Proposal[] memory returnArray = new Proposal[](returnLength);
+        for (uint256 i = 0; i < returnLength; i++) {
+            returnArray[i] = proposals[
+                _proposalIds[DATA_PER_PAGE * (page - 1) + i]
+            ];
+        }
+        return returnArray;
+    }
+
+    function getCandidates(uint256 proposalId, uint256 page)
+        external
+        view
+        returns (Candidate[] memory)
+    {
+        // 立候補者一覧
+        uint256 originalLength = _candidateAddresses[proposalId].length;
+        if (originalLength <= DATA_PER_PAGE * (page - 1)) {
+            return new Candidate[](0);
+        }
+
+        uint256 returnLength = DATA_PER_PAGE;
+        if (originalLength < DATA_PER_PAGE * (page + 1)) {
+            returnLength = originalLength - DATA_PER_PAGE * (page - 1);
+        }
+
+        Candidate[] memory returnArray = new Candidate[](returnLength);
+        for (uint256 i = 0; i < returnLength; i++) {
+            returnArray[i] = candidates[proposalId][
+                _candidateAddresses[proposalId][DATA_PER_PAGE * (page - 1) + i]
+            ];
+        }
+        return returnArray;
+    }
+
+    /* ########## not Pure/View External Functions ########## */
 
     function propose(string memory title, string memory description) external {
         _propose(msg.sender, title, description);
@@ -72,23 +135,27 @@ contract MessiahSystem {
         string memory url
     ) external {
         // 立候補
-        Proposal memory proposal = proposalMap[proposalId];
+        Proposal memory proposal = proposals[proposalId];
         require(proposal.timestamp != 0, "Invalid proposal ID.");
         require(
             block.timestamp < proposal.timestamp + VOTING_PERIOD,
             "This operation cannot be executed any more."
         );
-        proposalMap[proposalId].candidates.push(msg.sender);
-        candidateMap[proposalId][msg.sender] = Candidate(msg.sender, name, url);
+        require(
+            candidates[proposalId][msg.sender].addr == address(0),
+            "You've already run for this proposal."
+        );
+        _candidateAddresses[proposalId].push(msg.sender);
+        candidates[proposalId][msg.sender] = Candidate(msg.sender, name, url);
     }
 
     // function vote(bytes32 proposalId, address candidate) external {
-    //     require(proposalMap[proposalId].id != 0, "Invalid proposal ID.");
+    //     require(proposals[proposalId].id != 0, "Invalid proposal ID.");
     //     require(
-    //         candidateMap[proposalId][candidate].addr != address(0),
+    //         candidates[proposalId][candidate].addr != address(0),
     //         "Invalid candidate address."
     //     );
-    //     proposalMap[proposalId].totalVotes++;
+    //     proposals[proposalId].totalVotes++;
     // }
 
     function claimSubToken() external {
@@ -100,7 +167,7 @@ contract MessiahSystem {
         //     block.timestamp > deploymentTimestamp + FREEZING_TIME,
         //     "This operation cannot be executed yet."
         // );
-        require(hasClaimed[msg.sender] == false, "You are already claimed.");
+        require(hasClaimed[msg.sender] == false, "You've already claimed.");
         uint256 amount = _fetchClaimableAmount(
             subOriginalTokenAddress,
             msg.sender
@@ -118,18 +185,16 @@ contract MessiahSystem {
     ) private {
         uint256 timestamp = block.timestamp;
         uint256 id = _createProposalId(timestamp, proposer, title, description);
-        address[] memory candidates;
         Proposal memory proposal = Proposal(
             id,
             timestamp,
             proposer,
             title,
             description,
-            candidates,
             0
         );
-        proposalIds.push(id);
-        proposalMap[id] = proposal;
+        _proposalIds.push(id);
+        proposals[id] = proposal;
         emit Propose(proposer, id);
     }
 
