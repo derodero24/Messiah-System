@@ -20,6 +20,8 @@ describe('System', () => {
   let newSubToken: MessiahToken20;
   let factory: MessiahSystemFactory;
   let system: MessiahSystem;
+  let proposal: MessiahSystem.ProposalStruct;
+  let candidate: MessiahSystem.CandidateStruct;
 
   before(async () => {
     // Test signers
@@ -95,17 +97,54 @@ describe('System', () => {
     }
   });
 
+  it('No proposal yet', async () => {
+    const proposals = await system.getProposals(1);
+    expect(proposals.length).to.equal(0);
+  });
+
   it('Propose something', async () => {
     const receipt = await (
       await system.propose('title', 'Some proposal')
     ).wait();
-
-    const proposalId: BigNumber = receipt.events?.[0].args?.proposalId;
+    const proposalId = receipt.events?.[0].args?.proposalId;
     expect(proposalId.toString()).to.not.equal('0');
 
-    const proposal = await system.connect(signers[0]).proposalMap(proposalId);
+    proposal = await system.proposals(proposalId);
     expect(proposal.proposer).to.equal(signers[0].address);
     expect(proposal.title).to.equal('title');
     expect(proposal.description).to.equal('Some proposal');
+  });
+
+  it('Get current proposals', async () => {
+    const proposals = await system.getProposals(1);
+    expect(proposals.length).to.equal(1);
+    expect(proposals[0].id).to.equal(proposal.id);
+    expect(proposals[0].timestamp.toString()).to.not.equal('0');
+    expect(proposals[0].proposer).to.equal(signers[0].address);
+    expect(proposals[0].title).to.equal('title');
+    expect(proposals[0].description).to.equal('Some proposal');
+    expect(proposals[0].totalVotes).to.equal(0);
+  });
+
+  it('Run for proposal', async () => {
+    await system
+      .connect(signers[0])
+      .runForProposal(proposal.id, 'proposer1', 'https://...');
+    candidate = await system.candidates(proposal.id, signers[0].address);
+    expect(candidate.addr).to.equal(signers[0].address);
+    expect(candidate.name).to.equal('proposer1');
+    expect(candidate.url).to.equal('https://...');
+  });
+
+  it('Cannot run for same proposal again', async () => {
+    // Should be error
+    try {
+      await system
+        .connect(signers[0])
+        .runForProposal(proposal.id, 'proposer2', 'http://...');
+      assert.fail();
+    } catch (e) {
+      if (e instanceof AssertionError) assert.fail();
+    }
   });
 });
