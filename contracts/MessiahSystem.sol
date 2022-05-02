@@ -257,14 +257,6 @@ contract MessiahSystem {
         return ERC20(tokenAddress).decimals();
     }
 
-    function _fetchTokenBalance(address tokenAddress, address account)
-        private
-        view
-        returns (uint256)
-    {
-        return ERC20(tokenAddress).balanceOf(account);
-    }
-
     function _fetchTotalSupply(address tokenAddress)
         private
         pure

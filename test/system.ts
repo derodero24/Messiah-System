@@ -1,5 +1,5 @@
 import { assert, AssertionError, expect } from 'chai';
-import { BigNumber, constants } from 'ethers/lib/index';
+import { constants } from 'ethers/lib/index';
 import { ethers } from 'hardhat';
 
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -115,8 +115,14 @@ describe('System', () => {
     expect(proposal.description).to.equal('Some proposal');
   });
 
-  it('Get current proposals', async () => {
-    const proposals = await system.getProposals(1);
+  it('Get all proposals', async () => {
+    let proposals: MessiahSystem.ProposalStructOutput[] = [];
+    let next, page;
+    while (next === undefined || next.length !== 0) {
+      next = await system.getProposals(page || 1);
+      proposals = proposals.concat(next);
+      page = (page || 1) + 1;
+    }
     expect(proposals.length).to.equal(1);
     expect(proposals[0].id).to.equal(proposal.id);
     expect(proposals[0].timestamp.toString()).to.not.equal('0');
@@ -126,13 +132,18 @@ describe('System', () => {
     expect(proposals[0].totalVotes).to.equal(0);
   });
 
+  it('No candidate yet', async () => {
+    const candidates = await system.getCandidates(proposal.id, 1);
+    expect(candidates.length).to.equal(0);
+  });
+
   it('Run for proposal', async () => {
     await system
       .connect(signers[0])
-      .runForProposal(proposal.id, 'proposer1', 'https://...');
+      .runForProposal(proposal.id, 'First proposer', 'https://...');
     candidate = await system.candidates(proposal.id, signers[0].address);
     expect(candidate.addr).to.equal(signers[0].address);
-    expect(candidate.name).to.equal('proposer1');
+    expect(candidate.name).to.equal('First proposer');
     expect(candidate.url).to.equal('https://...');
   });
 
@@ -141,10 +152,24 @@ describe('System', () => {
     try {
       await system
         .connect(signers[0])
-        .runForProposal(proposal.id, 'proposer2', 'http://...');
+        .runForProposal(proposal.id, 'Same proposer', 'http://...');
       assert.fail();
     } catch (e) {
       if (e instanceof AssertionError) assert.fail();
     }
+  });
+
+  it('Get all candidates', async () => {
+    let candidates: MessiahSystem.CandidateStructOutput[] = [];
+    let next, page;
+    while (next === undefined || next.length !== 0) {
+      next = await system.getCandidates(proposal.id, page || 1);
+      candidates = candidates.concat(next);
+      page = (page || 1) + 1;
+    }
+    expect(candidates.length).to.equal(1);
+    expect(candidates[0].addr).to.equal(signers[0].address);
+    expect(candidates[0].name).to.equal('First proposer');
+    expect(candidates[0].url).to.equal('https://...');
   });
 });
