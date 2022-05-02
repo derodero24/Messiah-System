@@ -10,11 +10,6 @@ contract MessiahSystem {
     event Propose(address indexed proposer, uint256 proposalId);
 
     /* ########## Enum/Struct ########## */
-    // enum Vote {
-    //     For,
-    //     Against,
-    // }
-
     struct Proposal {
         uint256 id;
         uint256 timestamp;
@@ -30,8 +25,12 @@ contract MessiahSystem {
         string url;
     }
 
-    // struct Submission {
-    // }
+    struct Submission {
+        uint256 id;
+        uint256 proposalId;
+        address workerAddress;
+        string comment;
+    }
 
     /* ########## Variable ########## */
 
@@ -46,17 +45,22 @@ contract MessiahSystem {
     address public subOriginalTokenAddress; // ERC20
     address public subMessiahTokenAddress; // ERC20
 
-    // Proposal管理 (proposal ID -> info)
+    // Proposal (proposal ID -> info)
     uint256[] private _proposalIds;
     mapping(uint256 => Proposal) public proposals;
 
-    // Worker管理 (proposal ID -> proposer address -> info)
+    // Worker (proposal ID -> worker address -> info)
     mapping(uint256 => address[]) private _workerAddresses;
     mapping(uint256 => mapping(address => Worker)) public workers;
 
-    // Vote管理 (proposal ID -> voter address -> info)
+    // Vote (proposal ID -> voter address -> info)
     // mapping(uint256 => mapping(address => Worker)) public VoteMap;
 
+    // Submission (proposal ID -> submission ID -> info)
+    mapping(uint256 => uint256[]) private _submissionIds;
+    mapping(uint256 => mapping(uint256 => Submission)) public submissions;
+
+    // Others
     address[] public blacklist; // 運営アカウント
     mapping(address => bool) public hasClaimed; // サブトークンをclaim済みか
 
