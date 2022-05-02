@@ -21,7 +21,7 @@ describe('System', () => {
   let factory: MessiahSystemFactory;
   let system: MessiahSystem;
   let proposal: MessiahSystem.ProposalStruct;
-  let candidate: MessiahSystem.CandidateStruct;
+  let worker: MessiahSystem.WorkerStruct;
 
   before(async () => {
     // Test signers
@@ -77,20 +77,20 @@ describe('System', () => {
     );
   });
 
-  it('Claim new sub token', async () => {
+  it('Claim messsiah token', async () => {
     const newSubTokenAddress = await system.subMessiahTokenAddress();
     newSubToken = await ethers
       .getContractFactory('MessiahToken20')
       .then(factory => factory.attach(newSubTokenAddress));
     expect(await newSubToken.balanceOf(signers[0].address)).to.equal(0);
-    await system.connect(signers[0]).claimSubToken();
+    await system.connect(signers[0]).claimMessiahToken();
     expect(await newSubToken.balanceOf(signers[0].address)).to.not.equal(0);
   });
 
-  it('Cannot claim new sub token again', async () => {
+  it('Cannot claim messsiah token again', async () => {
     // Should be error
     try {
-      await system.connect(signers[0]).claimSubToken();
+      await system.connect(signers[0]).claimMessiahToken();
       assert.fail();
     } catch (e) {
       if (e instanceof AssertionError) assert.fail();
@@ -104,7 +104,7 @@ describe('System', () => {
 
   it('Propose something', async () => {
     const receipt = await (
-      await system.propose('title', 'Some proposal')
+      await system.propose('title', 'Some proposal', 100)
     ).wait();
     const proposalId = receipt.events?.[0].args?.proposalId;
     expect(proposalId.toString()).to.not.equal('0');
@@ -125,51 +125,51 @@ describe('System', () => {
     }
     expect(proposals.length).to.equal(1);
     expect(proposals[0].id).to.equal(proposal.id);
-    expect(proposals[0].timestamp.toString()).to.not.equal('0');
-    expect(proposals[0].proposer).to.equal(signers[0].address);
-    expect(proposals[0].title).to.equal('title');
-    expect(proposals[0].description).to.equal('Some proposal');
-    expect(proposals[0].totalVotes).to.equal(0);
+    expect(proposals[0].timestamp).to.equal(proposal.timestamp);
+    expect(proposals[0].proposer).to.equal(proposal.proposer);
+    expect(proposals[0].title).to.equal(proposal.title);
+    expect(proposals[0].description).to.equal(proposal.description);
+    expect(proposals[0].reward).to.equal(proposal.reward);
   });
 
-  it('No candidate yet', async () => {
-    const candidates = await system.getCandidates(proposal.id, 1);
-    expect(candidates.length).to.equal(0);
+  it('No worker yet', async () => {
+    const workers = await system.getWorkers(proposal.id, 1);
+    expect(workers.length).to.equal(0);
   });
 
-  it('Run for proposal', async () => {
+  it('Enter the proposal', async () => {
     await system
       .connect(signers[0])
-      .runForProposal(proposal.id, 'First proposer', 'https://...');
-    candidate = await system.candidates(proposal.id, signers[0].address);
-    expect(candidate.addr).to.equal(signers[0].address);
-    expect(candidate.name).to.equal('First proposer');
-    expect(candidate.url).to.equal('https://...');
+      .enterProposal(proposal.id, 'First proposer', 'https://...');
+    worker = await system.workers(proposal.id, signers[0].address);
+    expect(worker.addr).to.equal(signers[0].address);
+    expect(worker.name).to.equal('First proposer');
+    expect(worker.url).to.equal('https://...');
   });
 
-  it('Cannot run for same proposal again', async () => {
+  it('Cannot enter the same proposal again', async () => {
     // Should be error
     try {
       await system
         .connect(signers[0])
-        .runForProposal(proposal.id, 'Same proposer', 'http://...');
+        .enterProposal(proposal.id, 'Same proposer', 'http://...');
       assert.fail();
     } catch (e) {
       if (e instanceof AssertionError) assert.fail();
     }
   });
 
-  it('Get all candidates', async () => {
-    let candidates: MessiahSystem.CandidateStructOutput[] = [];
+  it('Get all workers', async () => {
+    let workers: MessiahSystem.WorkerStructOutput[] = [];
     let next, page;
     while (next === undefined || next.length !== 0) {
-      next = await system.getCandidates(proposal.id, page || 1);
-      candidates = candidates.concat(next);
+      next = await system.getWorkers(proposal.id, page || 1);
+      workers = workers.concat(next);
       page = (page || 1) + 1;
     }
-    expect(candidates.length).to.equal(1);
-    expect(candidates[0].addr).to.equal(signers[0].address);
-    expect(candidates[0].name).to.equal('First proposer');
-    expect(candidates[0].url).to.equal('https://...');
+    expect(workers.length).to.equal(1);
+    expect(workers[0].addr).to.equal(signers[0].address);
+    expect(workers[0].name).to.equal('First proposer');
+    expect(workers[0].url).to.equal('https://...');
   });
 });
