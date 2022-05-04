@@ -35,11 +35,12 @@ export const WalletContext = createContext({
   deployMessiahSystem: async (_erc721Addr: string, _erc20Addr: string) => {},
   updateContract: async (_addr: string) => {},
   // Getter
-  getTally: async (_id: number) => undefined as undefined | Tally,
+  getBlacklist: async (_page: number) => [] as string[],
   getProposals: async (_page: number) =>
     [] as MessiahSystem.ProposalStructOutput[],
   getSubmissions: async (_proposalId: BigNumberish, _page: number) =>
     [] as MessiahSystem.SubmissionStructOutput[],
+  getTally: async (_id: BigNumberish) => undefined as undefined | Tally,
   // Propose
   submitProposal: async (
     _title: string,
@@ -184,15 +185,9 @@ export default function WalletProvider(props: { children: ReactNode }) {
   };
 
   /* ########## Getter ########## */
-  const getTally = async (targetId: BigNumberish) => {
-    return wallet?.contract.messiahSystem?.tallies(targetId).then(
-      res =>
-        ({
-          totalFor: res.totalFor,
-          totalAgainst: res.totalAgainst,
-          totalAbstain: res.totalAbstain,
-        } as Tally)
-    );
+  const getBlacklist = async (page: number) => {
+    if (!wallet?.contract.messiahSystem) return [];
+    return wallet.contract.messiahSystem.getBlacklist(page);
   };
 
   const getProposals = async (page: number) => {
@@ -203,6 +198,17 @@ export default function WalletProvider(props: { children: ReactNode }) {
   const getSubmissions = async (proposalId: BigNumberish, page: number) => {
     if (!wallet?.contract.messiahSystem) return [];
     return wallet.contract.messiahSystem.getSubmissions(proposalId, page);
+  };
+
+  const getTally = async (targetId: BigNumberish) => {
+    return wallet?.contract.messiahSystem?.tallies(targetId).then(
+      res =>
+        ({
+          totalFor: res.totalFor,
+          totalAgainst: res.totalAgainst,
+          totalAbstain: res.totalAbstain,
+        } as Tally)
+    );
   };
 
   /* ########## Propose ########## */
@@ -283,9 +289,10 @@ export default function WalletProvider(props: { children: ReactNode }) {
         checkMessiahExists,
         deployMessiahSystem,
         updateContract,
-        getTally,
+        getBlacklist,
         getProposals,
         getSubmissions,
+        getTally,
         submitProposal,
         submitProduct,
         voteForBlacklist,

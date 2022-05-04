@@ -335,9 +335,11 @@ contract MessiahSystem {
         uint256 totalAbstain = tallies[targetId].totalAbstain;
         // (投票数がtotalSupplyの4%以上) かつ (賛成 > 反対)
         uint256 total = totalFor + totalAgainst + totalAbstain;
-        return
-            (total * 100) / _fetchTotalSupply(mainOriginalTokenAddress) >= 4 &&
-            totalFor > totalAgainst;
+        // TODO
+        // return
+        //     (total * 100) / _fetchTotalSupply(mainOriginalTokenAddress) >= 4 &&
+        //     totalFor > totalAgainst;
+        return total > 0 && totalFor > totalAgainst;
     }
 
     function _propose(
