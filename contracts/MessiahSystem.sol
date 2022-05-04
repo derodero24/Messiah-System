@@ -342,17 +342,25 @@ contract MessiahSystem {
     }
 
     function _vote(uint256 targetId, Option option) private {
-        // 投票 (提案の採択, 報酬の支払い, 両方に対応)`
+        // 投票 (提案の採択, 報酬の支払い, 両方に対応)
+        uint256 balance = _fetchTokenBalance(
+            mainOriginalTokenAddress,
+            msg.sender
+        );
         // Reset tally
         Option lastOption = votes[targetId][msg.sender];
-        if (lastOption == Option.FOR) tallies[targetId].totalFor--;
-        else if (lastOption == Option.AGAINST) tallies[targetId].totalAgainst--;
-        else if (lastOption == Option.ABSTAIN) tallies[targetId].totalAbstain--;
+        if (lastOption == Option.FOR) tallies[targetId].totalFor -= balance;
+        else if (lastOption == Option.AGAINST)
+            tallies[targetId].totalAgainst -= balance;
+        else if (lastOption == Option.ABSTAIN)
+            tallies[targetId].totalAbstain -= balance;
         // Update tally
         votes[targetId][msg.sender] = option;
-        if (option == Option.FOR) tallies[targetId].totalFor++;
-        else if (option == Option.AGAINST) tallies[targetId].totalAgainst++;
-        else if (option == Option.ABSTAIN) tallies[targetId].totalAbstain++;
+        if (option == Option.FOR) tallies[targetId].totalFor += balance;
+        else if (option == Option.AGAINST)
+            tallies[targetId].totalAgainst += balance;
+        else if (option == Option.ABSTAIN)
+            tallies[targetId].totalAbstain += balance;
         // Emit event
         emit Vote(msg.sender, targetId, option);
     }
@@ -399,6 +407,14 @@ contract MessiahSystem {
         returns (uint8)
     {
         return ERC20(tokenAddress).decimals();
+    }
+
+    function _fetchTokenBalance(address tokenAddress, address account)
+        private
+        view
+        returns (uint256)
+    {
+        return ERC20(tokenAddress).balanceOf(account);
     }
 
     function _fetchTotalSupply(address tokenAddress)

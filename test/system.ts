@@ -48,7 +48,10 @@ describe('System', () => {
         .deploy('Main', 'MT')
         .then(contract => contract.deployed())
         .then(token => {
+          token.safeMint(signers[0].address, 0);
           token.safeMint(signers[0].address, 1);
+          token.safeMint(signers[1].address, 2);
+          token.safeMint(signers[2].address, 3);
           return token;
         })
     );
@@ -96,12 +99,9 @@ describe('System', () => {
       .voteForBlacklist(signers[10].address, Option.FOR);
     await system
       .connect(signers[1])
-      .voteForBlacklist(signers[10].address, Option.FOR);
-    await system
-      .connect(signers[2])
       .voteForBlacklist(signers[10].address, Option.AGAINST);
     await system
-      .connect(signers[3])
+      .connect(signers[2])
       .voteForBlacklist(signers[10].address, Option.ABSTAIN);
 
     const tally = await system.tallies(
@@ -123,7 +123,7 @@ describe('System', () => {
   });
 
   it('Wait until end freezing...', async () => {
-    await new Promise<void>(resolve => setTimeout(() => resolve(), 5_000));
+    await new Promise<void>(resolve => setTimeout(() => resolve(), 8_000));
   });
 
   it('Claim messsiah token', async () => {
@@ -204,9 +204,6 @@ describe('System', () => {
     await system
       .connect(signers[2])
       .voteForProposal(proposal.id, Option.ABSTAIN);
-    await system
-      .connect(signers[3])
-      .voteForProposal(proposal.id, Option.ABSTAIN);
     // Check own
     expect(
       await system.connect(signers[0]).votes(proposal.id, signers[0].address)
@@ -217,17 +214,17 @@ describe('System', () => {
     ).to.equal(Option.AGAINST);
     // Check tally
     const tally = await system.tallies(proposal.id);
-    expect(tally.totalFor).to.equal(1);
-    expect(tally.totalAgainst).to.equal(1);
-    expect(tally.totalAbstain).to.equal(2);
-  });
-
-  it('Can change votes', async () => {
-    await system.connect(signers[3]).voteForProposal(proposal.id, Option.FOR);
-    const tally = await system.tallies(proposal.id);
     expect(tally.totalFor).to.equal(2);
     expect(tally.totalAgainst).to.equal(1);
     expect(tally.totalAbstain).to.equal(1);
+  });
+
+  it('Can change votes', async () => {
+    await system.connect(signers[2]).voteForProposal(proposal.id, Option.FOR);
+    const tally = await system.tallies(proposal.id);
+    expect(tally.totalFor).to.equal(3);
+    expect(tally.totalAgainst).to.equal(1);
+    expect(tally.totalAbstain).to.equal(0);
   });
 
   it('Cannot submit product yet', async () => {
@@ -243,7 +240,7 @@ describe('System', () => {
   });
 
   it('Wait until end voting...', async () => {
-    await new Promise<void>(resolve => setTimeout(() => resolve(), 5_000));
+    await new Promise<void>(resolve => setTimeout(() => resolve(), 8_000));
   });
 
   it('Submit product', async () => {
