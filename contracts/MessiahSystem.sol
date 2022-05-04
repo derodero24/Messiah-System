@@ -57,7 +57,7 @@ contract MessiahSystem {
 
     // constant
     uint256 public constant FREEZING_PERIOD = 0; // TODO: 1 weeks;
-    uint256 public constant VOTING_PERIOD = 10 seconds; // TODO: 1 weeks;
+    uint256 public constant VOTING_PERIOD = 5 seconds; // TODO: 1 weeks;
     uint256 public constant DATA_PER_PAGE = 100;
 
     // info
@@ -308,10 +308,10 @@ contract MessiahSystem {
         uint256 totalFor = tallies[targetId].totalFor;
         uint256 totalAgainst = tallies[targetId].totalAgainst;
         uint256 totalAbstain = tallies[targetId].totalAbstain;
-        // (投票数がtotalSupplyの10%以上) かつ (賛成 > 反対)
+        // (投票数がtotalSupplyの4%以上) かつ (賛成 > 反対)
         uint256 total = totalFor + totalAgainst + totalAbstain;
         return
-            (total * 100) / _fetchTotalSupply(mainOriginalTokenAddress) < 10 &&
+            (total * 100) / _fetchTotalSupply(mainOriginalTokenAddress) >= 4 &&
             totalFor > totalAgainst;
     }
 
@@ -406,7 +406,7 @@ contract MessiahSystem {
         pure
         returns (uint256)
     {
-        return 100_000_000;
+        return 100;
     }
 
     function _fetchClaimableAmount(address tokenAddress, address claimer)
@@ -414,6 +414,6 @@ contract MessiahSystem {
         pure
         returns (uint256)
     {
-        return 100;
+        return 10;
     }
 }

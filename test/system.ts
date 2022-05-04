@@ -184,7 +184,7 @@ describe('System', () => {
   });
 
   it('Wait until end voting...', async () => {
-    await new Promise<void>(resolve => setTimeout(() => resolve(), 10_000));
+    await new Promise<void>(resolve => setTimeout(() => resolve(), 5_000));
   });
 
   it('Submit product', async () => {
