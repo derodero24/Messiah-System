@@ -1,4 +1,4 @@
-import { BigNumberish, Contract } from 'ethers';
+import { BigNumber, BigNumberish, Contract } from 'ethers';
 import {
   createContext,
   ReactNode,
@@ -9,7 +9,6 @@ import {
 
 import {
   ExternalProvider,
-  JsonRpcSigner,
   Provider,
   Web3Provider,
 } from '@ethersproject/providers';
@@ -17,7 +16,7 @@ import {
 import { MessiahSystem, MessiahSystemFactory } from '../../typechain-types';
 import messiahSystem from './abi/MessiahSystem.json';
 import messiahSystemFactory from './abi/MessiahSystemFactory.json';
-import { Wallet } from './contractVariables';
+import { Tally, Wallet } from './contractVariables';
 
 declare global {
   interface Window {
@@ -32,7 +31,7 @@ export const WalletContext = createContext({
   deployMessiahSystem: async (_erc721Addr: string, _erc20Addr: string) => {},
   updateContract: async (_addr: string) => {},
   // Getter
-  // getTally: async (_id: number) => [] as ,
+  getTally: async (_id: number) => undefined as undefined | Tally,
   getProposals: async (_page: number) =>
     [] as MessiahSystem.ProposalStructOutput[],
   getSubmissions: async (_proposalId: BigNumberish, _page: number) =>
@@ -53,6 +52,9 @@ export const WalletContext = createContext({
   voteForBlacklist: (_account: string, _option: BigNumberish) => {},
   voteForProposal: (_proposalId: BigNumberish, _option: BigNumberish) => {},
   voteForSubmission: (_submissionId: BigNumberish, _option: BigNumberish) => {},
+  // Others
+  convertToAccountId: async (_account: string) =>
+    undefined as undefined | BigNumber,
 });
 
 const contractAddress = '0x5d06B61384b8dd54A35506addE6a691E11D27831';
@@ -171,10 +173,17 @@ export default function WalletProvider(props: { children: ReactNode }) {
       },
     });
   };
+
   /* ########## Getter ########## */
   const getTally = async (targetId: BigNumberish) => {
-    if (!wallet?.contract.messiahSystem) return [];
-    return wallet.contract.messiahSystem?.tallies(targetId);
+    return wallet?.contract.messiahSystem?.tallies(targetId).then(
+      res =>
+        ({
+          totalFor: res.totalFor,
+          totalAgainst: res.totalAgainst,
+          totalAbstain: res.totalAbstain,
+        } as Tally)
+    );
   };
 
   const getProposals = async (page: number) => {
@@ -227,6 +236,12 @@ export default function WalletProvider(props: { children: ReactNode }) {
     );
   };
 
+  /* ########## Others ########## */
+
+  const convertToAccountId = async (account: string) => {
+    return wallet?.contract.messiahSystem?.accountId(account);
+  };
+
   return (
     <WalletContext.Provider
       value={{
@@ -235,6 +250,7 @@ export default function WalletProvider(props: { children: ReactNode }) {
         checkMessiahExists,
         deployMessiahSystem,
         updateContract,
+        getTally,
         getProposals,
         getSubmissions,
         submitProposal,
@@ -242,6 +258,7 @@ export default function WalletProvider(props: { children: ReactNode }) {
         voteForBlacklist,
         voteForProposal,
         voteForSubmission,
+        convertToAccountId,
       }}
     >
       {props.children}

@@ -1,3 +1,5 @@
+import { BigNumber } from 'ethers';
+
 import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers';
 
 import { MessiahSystem, MessiahSystemFactory } from '../../typechain-types';
@@ -13,6 +15,12 @@ export type Wallet =
       };
     }
   | undefined;
+
+export type Tally = {
+  totalFor: BigNumber; // 賛成
+  totalAgainst: BigNumber; // 反対
+  totalAbstain: BigNumber; // 棄権
+};
 
 export const ProposalState = {
   VOTING: 0,
