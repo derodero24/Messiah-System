@@ -178,19 +178,25 @@ function TokenBalanceGraph() {
 function Step1() {
   const [data, setData] = React.useState([{}]);
   const [blacklist, setBlacklist] = React.useState<string[]>([]);
-  const { voteForBlacklist } = React.useContext(WalletContext);
+  const { voteForBlacklist, claimMessiahToken, getBlacklist } =
+    React.useContext(WalletContext);
 
-  const claimPressed = () => {};
+  const claimPressed = () => {
+    claimMessiahToken();
+  };
 
   const submitBlacklist = () => {
     console.log(blacklist);
   };
 
-  const vote = (address: string) => {
+  const vote = async (address: string) => {
     // const tmp = blacklist;
     // tmp.push(address);
     // setBlacklist(tmp);
-    voteForBlacklist(address, Option.FOR);
+    await voteForBlacklist(address, Option.FOR);
+    const _balcklist = await getBlacklist(1);
+    console.log(_balcklist);
+    setBlacklist(_balcklist);
   };
 
   React.useEffect(() => {
@@ -202,6 +208,10 @@ function Step1() {
       }
     });
     setData(dummy_balance);
+    getBlacklist(1).then(res => {
+      console.log(res);
+      setBlacklist(res);
+    });
   }, []);
 
   return (

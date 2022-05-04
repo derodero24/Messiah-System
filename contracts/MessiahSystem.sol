@@ -445,7 +445,7 @@ contract MessiahSystem {
         view
         returns (uint256)
     {
-        return ERC20(tokenAddress).balanceOf(account);
+        return ERC721(tokenAddress).balanceOf(account);
     }
 
     function _fetchTotalSupply(address tokenAddress)
