@@ -137,16 +137,7 @@ contract MessiahSystem {
         // 資産ロック解除前はfalse
         if (block.timestamp < deploymentTimestamp + FREEZING_PERIOD)
             return false;
-
-        uint256 id = accountId(account);
-        uint256 totalFor = tallies[id].totalFor;
-        uint256 totalAgainst = tallies[id].totalAgainst;
-        uint256 totalAbstain = tallies[id].totalAbstain;
-        // (投票数がtotalSupplyの10%以上) かつ (賛成 > 反対)
-        uint256 total = totalFor + totalAgainst + totalAbstain;
-        return
-            (total * 100) / _fetchTotalSupply(mainOriginalTokenAddress) < 10 &&
-            totalFor > totalAgainst;
+        return _isAccepted(accountId(account));
     }
 
     function getProposals(uint256 page)
