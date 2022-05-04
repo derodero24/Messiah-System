@@ -56,15 +56,15 @@ contract MessiahSystem {
     /* ########## Variable ########## */
 
     // constant
-    uint256 public constant FREEZING_PERIOD = 0; // TODO: 1 weeks;
-    uint256 public constant VOTING_PERIOD = 5 seconds; // TODO: 1 weeks;
+    uint256 public constant FREEZING_PERIOD = 5 seconds; // TODO: 1 weeks;
+    uint256 public constant VOTING_PERIOD = 10 seconds; // TODO: 1 weeks;
     uint256 public constant DATA_PER_PAGE = 100;
 
     // info
     uint256 public deploymentTimestamp;
     address public mainOriginalTokenAddress; // ERC721
     address public subOriginalTokenAddress; // ERC20
-    address public subMessiahTokenAddress; // ERC20
+    MessiahToken20 public messiahToken; // ERC20
 
     // Proposal (proposal ID -> info)
     uint256[] private _proposalIds;
@@ -78,11 +78,7 @@ contract MessiahSystem {
     mapping(uint256 => Tally) public tallies;
     mapping(uint256 => mapping(address => Option)) public votes;
 
-    // // Vote for blacklist
-    // mapping(address => Tally) public blacklistTally;
-
     // Others
-    // mapping(address => Tally) public blacklistTally; // 運営アカウント投票
     mapping(address => bool) public hasClaimed; // サブトークンをclaim済みか
 
     /* ########## Constructor ########## */
@@ -132,12 +128,16 @@ contract MessiahSystem {
 
     /* ########## Pure/View Public/External Functions ########## */
 
+    function accountId(address account) public pure returns (uint256) {
+        return uint256(keccak256(abi.encode(account)));
+    }
+
     function isBlacklisted(address account) public view returns (bool) {
         // 資産ロック解除前はfalse
         if (block.timestamp < deploymentTimestamp + FREEZING_PERIOD)
             return false;
 
-        uint256 id = _accountId(account);
+        uint256 id = accountId(account);
         uint256 totalFor = tallies[id].totalFor;
         uint256 totalAgainst = tallies[id].totalAgainst;
         uint256 totalAbstain = tallies[id].totalAbstain;
@@ -238,7 +238,7 @@ contract MessiahSystem {
         external
         beforeFreezing
     {
-        _vote(_accountId(account), option);
+        _vote(accountId(account), option);
     }
 
     function voteForProposal(uint256 proposalId, Option option)
@@ -264,8 +264,9 @@ contract MessiahSystem {
 
     function claimReward(uint256 proposalId) external {
         // 報酬をclaim
-        // Proposal memory proposal = proposals[proposalId];
-        // MessiahToken20(subMessiahTokenAddress).transfer(_to, proposal.reward);
+        Proposal memory proposal = proposals[proposalId];
+        require(msg.sender == proposal.proposer, "Can claim only by proposer");
+        messiahToken.transfer(proposal.proposer, proposal.reward);
     }
 
     function claimMessiahToken() external afterFreezing {
@@ -280,14 +281,10 @@ contract MessiahSystem {
             msg.sender
         );
         hasClaimed[msg.sender] = true;
-        MessiahToken20(subMessiahTokenAddress).transfer(msg.sender, amount);
+        messiahToken.transfer(msg.sender, amount);
     }
 
     /* ########## Private Functions ########## */
-
-    function _accountId(address account) private pure returns (uint256) {
-        return uint256(keccak256(abi.encode(account)));
-    }
 
     function _updateProposalState(uint256 proposalId) private {
         // Proposalのステート更新
@@ -321,6 +318,10 @@ contract MessiahSystem {
         string memory description,
         uint256 reward
     ) private {
+        require(
+            reward <= messiahToken.balanceOf(address(this)),
+            "Reward exceed the balance of this contract"
+        );
         uint256 timestamp = block.timestamp;
         uint256 id = uint256(
             keccak256(
@@ -362,7 +363,8 @@ contract MessiahSystem {
             subOriginalTokenAddress == address(0),
             "Sub token has already set"
         );
-        MessiahToken20 messiahToken = new MessiahToken20(
+        subOriginalTokenAddress = originalTokenAddress;
+        messiahToken = new MessiahToken20(
             _fetchTokenName(originalTokenAddress),
             _fetchTokenSymbol(originalTokenAddress),
             _fetchTokenDecimals(originalTokenAddress)
@@ -371,8 +373,6 @@ contract MessiahSystem {
             address(this),
             _fetchTotalSupply(originalTokenAddress)
         );
-        subOriginalTokenAddress = originalTokenAddress;
-        subMessiahTokenAddress = address(messiahToken);
     }
 
     /* ########## Oracle Functions ########## */

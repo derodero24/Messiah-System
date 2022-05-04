@@ -32,7 +32,7 @@ describe('System', () => {
   let signers: SignerWithAddress[];
   let mainToken: SimpleERC721;
   let subToken: SimpleERC20;
-  let newSubToken: MessiahToken20;
+  let messiahToken: MessiahToken20;
   let factory: MessiahSystemFactory;
   let system: MessiahSystem;
   let proposal: MessiahSystem.ProposalStruct;
@@ -80,26 +80,59 @@ describe('System', () => {
       .then(factory => factory.attach(messiahSystemAddress));
   });
 
-  it('Chack token addresses', async () => {
+  it('Check token addresses', async () => {
     expect(await system.mainOriginalTokenAddress()).to.not.equal(
       constants.AddressZero
     );
     expect(await system.subOriginalTokenAddress()).to.not.equal(
       constants.AddressZero
     );
-    expect(await system.subMessiahTokenAddress()).to.not.equal(
-      constants.AddressZero
+    expect(await system.messiahToken()).to.not.equal(constants.AddressZero);
+  });
+
+  it('Vote for blacklist', async () => {
+    await system
+      .connect(signers[0])
+      .voteForBlacklist(signers[10].address, Option.FOR);
+    await system
+      .connect(signers[1])
+      .voteForBlacklist(signers[10].address, Option.FOR);
+    await system
+      .connect(signers[2])
+      .voteForBlacklist(signers[10].address, Option.AGAINST);
+    await system
+      .connect(signers[3])
+      .voteForBlacklist(signers[10].address, Option.ABSTAIN);
+
+    const tally = await system.tallies(
+      await system.accountId(signers[10].address)
     );
+    expect(tally.totalFor).to.equal(2);
+    expect(tally.totalAgainst).to.equal(1);
+    expect(tally.totalAbstain).to.equal(1);
+  });
+
+  it('Cannot claim messsiah token yet', async () => {
+    // Should be error
+    try {
+      await system.connect(signers[0]).claimMessiahToken();
+      assert.fail();
+    } catch (e) {
+      if (e instanceof AssertionError) assert.fail();
+    }
+  });
+
+  it('Wait until end freezing...', async () => {
+    await new Promise<void>(resolve => setTimeout(() => resolve(), 5_000));
   });
 
   it('Claim messsiah token', async () => {
-    const newSubTokenAddress = await system.subMessiahTokenAddress();
-    newSubToken = await ethers
+    messiahToken = await ethers
       .getContractFactory('MessiahToken20')
-      .then(factory => factory.attach(newSubTokenAddress));
-    expect(await newSubToken.balanceOf(signers[0].address)).to.equal(0);
+      .then(async factory => factory.attach(await system.messiahToken()));
+    expect(await messiahToken.balanceOf(signers[0].address)).to.equal(0);
     await system.connect(signers[0]).claimMessiahToken();
-    expect(await newSubToken.balanceOf(signers[0].address)).to.not.equal(0);
+    expect(await messiahToken.balanceOf(signers[0].address)).to.not.equal(0);
   });
 
   it('Cannot claim messsiah token again', async () => {
@@ -112,6 +145,20 @@ describe('System', () => {
     }
   });
 
+  it('Blacklist account cannot claim messsiah token.', async () => {
+    messiahToken = await ethers
+      .getContractFactory('MessiahToken20')
+      .then(async factory => factory.attach(await system.messiahToken()));
+    expect(await messiahToken.balanceOf(signers[10].address)).to.equal(0);
+    try {
+      await system.connect(signers[10]).claimMessiahToken();
+      assert.fail();
+    } catch (e) {
+      if (e instanceof AssertionError) assert.fail();
+    }
+    expect(await messiahToken.balanceOf(signers[10].address)).to.equal(0);
+  });
+
   it('No proposal yet', async () => {
     const proposals = await system.getProposals(1);
     expect(proposals.length).to.equal(0);
@@ -119,7 +166,7 @@ describe('System', () => {
 
   it('Propose something', async () => {
     const receipt = await (
-      await system.connect(signers[0]).propose('title', 'Some proposal', 100)
+      await system.connect(signers[0]).propose('title', 'Some proposal', 10)
     ).wait();
     const proposalId = receipt.events?.[0].args?.proposalId;
     expect(proposalId.toString()).to.not.equal('0');
@@ -127,7 +174,7 @@ describe('System', () => {
     expect(proposal.proposer).to.equal(signers[0].address);
     expect(proposal.title).to.equal('title');
     expect(proposal.description).to.equal('Some proposal');
-    expect(proposal.reward).to.equal(100);
+    expect(proposal.reward).to.equal(10);
     expect(proposal.state).to.equal(ProposalState.VOTING);
   });
 
@@ -181,6 +228,18 @@ describe('System', () => {
     expect(tally.totalFor).to.equal(2);
     expect(tally.totalAgainst).to.equal(1);
     expect(tally.totalAbstain).to.equal(1);
+  });
+
+  it('Cannot submit product yet', async () => {
+    // Should be error
+    try {
+      await system
+        .connect(signers[0])
+        .submit(proposal.id, 'https://...', 'brabrabra...');
+      assert.fail();
+    } catch (e) {
+      if (e instanceof AssertionError) assert.fail();
+    }
   });
 
   it('Wait until end voting...', async () => {
@@ -247,5 +306,13 @@ describe('System', () => {
     } catch (e) {
       if (e instanceof AssertionError) assert.fail();
     }
+  });
+
+  it('Claim reward', async () => {
+    expect(await messiahToken.balanceOf(signers[0].address)).to.equal(10);
+    await system.claimReward(proposal.id);
+    expect(await messiahToken.balanceOf(signers[0].address)).to.equal(
+      10 + parseInt(proposal.reward.toString())
+    );
   });
 });
