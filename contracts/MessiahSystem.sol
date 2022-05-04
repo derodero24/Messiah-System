@@ -463,4 +463,15 @@ contract MessiahSystem {
     {
         return 10;
     }
+
+    /* ########## Test Functions ########## */
+    function endFreezing() external {
+        // 資産ロック期間終了
+        deploymentTimestamp -= FREEZING_PERIOD;
+    }
+
+    function endVoting(uint256 proposalId) external {
+        // 資産ロック期間終了
+        proposals[proposalId].timestamp -= VOTING_PERIOD;
+    }
 }
