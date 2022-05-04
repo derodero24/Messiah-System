@@ -23,7 +23,8 @@ import {
   Typography,
 } from '@mui/material';
 
-import { Option, WalletContext } from './ethereum/WalletProvider';
+import { Option } from './ethereum/contractVariables';
+import { WalletContext } from './ethereum/WalletProvider';
 import GET_TRANSFERS from './graphql/subgraph';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -189,7 +190,6 @@ function Step1() {
     // const tmp = blacklist;
     // tmp.push(address);
     // setBlacklist(tmp);
-    console.log(address);
     voteForBlacklist(address, Option.FOR);
   };
 

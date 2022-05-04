@@ -34,7 +34,7 @@ function OtherSite() {
       setMessiahExists(false);
     } else {
       setMessiahExists(true);
-      await updateContract(res);
+      await updateContract(res || '');
     }
   };
 
@@ -49,7 +49,7 @@ function OtherSite() {
       setMessiahExists(false);
     } else {
       setMessiahExists(true);
-      await updateContract(res);
+      await updateContract(res || '');
     }
 
     setCheckFlag(true);

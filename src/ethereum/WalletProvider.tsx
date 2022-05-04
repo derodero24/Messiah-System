@@ -17,6 +17,7 @@ import {
 import { MessiahSystem, MessiahSystemFactory } from '../../typechain-types';
 import messiahSystem from './abi/MessiahSystem.json';
 import messiahSystemFactory from './abi/MessiahSystemFactory.json';
+import { Wallet } from './contractVariables';
 
 declare global {
   interface Window {
@@ -24,46 +25,31 @@ declare global {
   }
 }
 
-type Wallet =
-  | {
-      provider: Web3Provider;
-      signer: JsonRpcSigner;
-      address: string;
-      contract: {
-        messiahSystemFactory: MessiahSystemFactory;
-        messiahSystem?: MessiahSystem;
-      };
-    }
-  | undefined;
-
-export const ProposalState = {
-  VOTING: 0,
-  DEVELOPING: 1,
-  COMPLETED: 2,
-  DEFEATED: 3,
-  CANCELED: 4,
-} as const;
-
-export const Option = {
-  UNVOTED: 0,
-  FOR: 1,
-  AGAINST: 2,
-  ABSTAIN: 3,
-} as const;
-
 export const WalletContext = createContext({
   wallet: undefined as Wallet,
   connectWallet: () => {},
-  checkMessiahExists: async erc721Add => null as string,
+  checkMessiahExists: async (_erc721Add: string) => '' as undefined | string,
   deployMessiahSystem: async (_erc721Addr: string, _erc20Addr: string) => {},
-  updateContract: async messiahSystemAddressInput => {},
+  updateContract: async (_addr: string) => {},
+  // Getter
+  // getTally: async (_id: number) => [] as ,
   getProposals: async (_page: number) =>
     [] as MessiahSystem.ProposalStructOutput[],
+  getSubmissions: async (_proposalId: BigNumberish, _page: number) =>
+    [] as MessiahSystem.SubmissionStructOutput[],
+  // Propose
   submitProposal: async (
     _title: string,
     _description: string,
     _reward: number
   ) => {},
+  // Submit
+  submit: async (
+    _proposalId: BigNumberish,
+    _url: string,
+    _comment: string
+  ) => {},
+  // Vote
   voteForBlacklist: (_account: string, _option: BigNumberish) => {},
   voteForProposal: (_proposalId: BigNumberish, _option: BigNumberish) => {},
   voteForSubmission: (_submissionId: BigNumberish, _option: BigNumberish) => {},
@@ -185,12 +171,23 @@ export default function WalletProvider(props: { children: ReactNode }) {
       },
     });
   };
+  /* ########## Getter ########## */
+  const getTally = async (targetId: BigNumberish) => {
+    if (!wallet?.contract.messiahSystem) return [];
+    return wallet.contract.messiahSystem?.tallies(targetId);
+  };
 
   const getProposals = async (page: number) => {
     if (!wallet?.contract.messiahSystem) return [];
     return wallet.contract.messiahSystem.getProposals(page);
   };
 
+  const getSubmissions = async (proposalId: BigNumberish, page: number) => {
+    if (!wallet?.contract.messiahSystem) return [];
+    return wallet.contract.messiahSystem.getSubmissions(proposalId, page);
+  };
+
+  /* ########## Propose ########## */
   const submitProposal = async (
     title: string,
     description: string,
@@ -199,6 +196,16 @@ export default function WalletProvider(props: { children: ReactNode }) {
     await wallet?.contract.messiahSystem?.propose(title, description, reward);
   };
 
+  /* ########## Submit ########## */
+  const submit = async (
+    proposalId: BigNumberish,
+    url: string,
+    comment: string
+  ) => {
+    await wallet?.contract.messiahSystem?.submit(proposalId, url, comment);
+  };
+
+  /* ########## Vote ########## */
   const voteForBlacklist = async (account: string, option: BigNumberish) => {
     await wallet?.contract.messiahSystem?.voteForBlacklist(account, option);
   };
@@ -229,7 +236,9 @@ export default function WalletProvider(props: { children: ReactNode }) {
         deployMessiahSystem,
         updateContract,
         getProposals,
+        getSubmissions,
         submitProposal,
+        submit,
         voteForBlacklist,
         voteForProposal,
         voteForSubmission,
