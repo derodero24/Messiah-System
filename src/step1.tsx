@@ -185,18 +185,19 @@ function Step1() {
     claimMessiahToken();
   };
 
-  const submitBlacklist = () => {
-    console.log(blacklist);
+  const updateBlacklist = async () => {
+    await getBlacklist(1).then(res => {
+      console.log(res);
+      setBlacklist(res);
+    });
   };
 
   const vote = async (address: string) => {
-    // const tmp = blacklist;
-    // tmp.push(address);
-    // setBlacklist(tmp);
     await voteForBlacklist(address, Option.FOR);
-    const _balcklist = await getBlacklist(1);
-    console.log(_balcklist);
-    setBlacklist(_balcklist);
+    await getBlacklist(1).then(res => {
+      console.log(res);
+      setBlacklist(res);
+    });
   };
 
   React.useEffect(() => {
@@ -240,7 +241,7 @@ function Step1() {
           </div>
         );
       })}
-      <Button onClick={submitBlacklist}>submit Blacklist</Button>
+      <Button onClick={updateBlacklist}>Update Blacklist</Button>
 
       <Typography variant='h4' gutterBottom>
         Go Eden
