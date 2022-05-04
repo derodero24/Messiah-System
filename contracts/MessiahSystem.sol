@@ -31,20 +31,21 @@ contract MessiahSystem {
 
     struct Proposal {
         uint256 id;
-        uint256 timestamp;
-        address proposer;
-        string title;
-        string description;
-        uint256 reward;
-        ProposalState state;
+        uint256 timestamp; // 提案時刻
+        address proposer; // 提案者
+        string title; // タイトル
+        string description; // 説明
+        uint256 reward; // 報酬額
+        address resolver; // 最終的にrewardを受け取った人
+        ProposalState state; // 状態
     }
 
     struct Submission {
         uint256 id;
-        uint256 proposalId;
-        address submitter;
-        string url;
-        string comment;
+        uint256 proposalId; // 対象のProposal ID
+        address submitter; // 提出者
+        string url; // 参考URL
+        string comment; // コメント
     }
 
     struct Tally {
@@ -262,11 +263,19 @@ contract MessiahSystem {
         _vote(submissionId, option);
     }
 
-    function claimReward(uint256 proposalId) external {
+    function claimReward(uint256 submissionId) external {
         // 報酬をclaim
-        Proposal memory proposal = proposals[proposalId];
-        require(msg.sender == proposal.proposer, "Can claim only by proposer");
-        messiahToken.transfer(proposal.proposer, proposal.reward);
+        Submission memory submission = submissions[submissionId];
+        Proposal memory proposal = proposals[submission.proposalId];
+        require(submission.id != 0, "Invalid submission ID");
+        require(proposal.state == ProposalState.DEVELOPING, "Cannot vote now");
+        require(_isAccepted(submissionId), "Not accepted");
+        require(
+            msg.sender == submission.submitter,
+            "Can claim only by submitter"
+        );
+        proposals[submission.proposalId].resolver = msg.sender;
+        messiahToken.transfer(msg.sender, proposal.reward);
     }
 
     function claimMessiahToken() external afterFreezing {
@@ -336,6 +345,7 @@ contract MessiahSystem {
             title,
             description,
             reward,
+            address(0),
             ProposalState.VOTING
         );
         emit Propose(proposer, id);

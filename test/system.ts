@@ -239,7 +239,7 @@ describe('System', () => {
     }
   });
 
-  it('Wait until end voting...', async () => {
+  it('Wait until end proposal voting...', async () => {
     await new Promise<void>(resolve => setTimeout(() => resolve(), 8_000));
   });
 
@@ -273,6 +273,39 @@ describe('System', () => {
     expect(submissions[0].comment).to.equal(submission.comment);
   });
 
+  it('Vote for the submission', async () => {
+    await system
+      .connect(signers[0])
+      .voteForSubmission(submission.id, Option.FOR);
+    await system
+      .connect(signers[1])
+      .voteForSubmission(submission.id, Option.AGAINST);
+    await system
+      .connect(signers[2])
+      .voteForSubmission(submission.id, Option.ABSTAIN);
+    // Check own
+    expect(
+      await system.connect(signers[0]).votes(submission.id, signers[0].address)
+    ).to.equal(Option.FOR);
+    // Check others
+    expect(
+      await system.connect(signers[0]).votes(submission.id, signers[1].address)
+    ).to.equal(Option.AGAINST);
+    // Check tally
+    const tally = await system.tallies(submission.id);
+    expect(tally.totalFor).to.equal(2);
+    expect(tally.totalAgainst).to.equal(1);
+    expect(tally.totalAbstain).to.equal(1);
+  });
+
+  it('Claim reward', async () => {
+    expect(await messiahToken.balanceOf(signers[0].address)).to.equal(10);
+    await system.claimReward(submission.id);
+    expect(await messiahToken.balanceOf(signers[0].address)).to.equal(
+      10 + parseInt(proposal.reward.toString())
+    );
+  });
+
   it('Cannnot cancel the proposal by unproposer', async () => {
     // Should be error
     try {
@@ -303,13 +336,5 @@ describe('System', () => {
     } catch (e) {
       if (e instanceof AssertionError) assert.fail();
     }
-  });
-
-  it('Claim reward', async () => {
-    expect(await messiahToken.balanceOf(signers[0].address)).to.equal(10);
-    await system.claimReward(proposal.id);
-    expect(await messiahToken.balanceOf(signers[0].address)).to.equal(
-      10 + parseInt(proposal.reward.toString())
-    );
   });
 });
