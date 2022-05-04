@@ -26,7 +26,6 @@ contract MessiahSystem {
     }
 
     struct Submission {
-        uint256 id;
         uint256 proposalId;
         address workerAddress;
         string comment;
@@ -56,9 +55,9 @@ contract MessiahSystem {
     // Vote (proposal ID -> voter address -> info)
     // mapping(uint256 => mapping(address => Worker)) public VoteMap;
 
-    // Submission (proposal ID -> submission ID -> info)
-    mapping(uint256 => uint256[]) private _submissionIds;
-    mapping(uint256 => mapping(uint256 => Submission)) public submissions;
+    // Submission (proposal ID -> worker address -> info)
+    mapping(uint256 => address[]) private _submitters;
+    mapping(uint256 => mapping(address => Submission)) public submissions;
 
     // Others
     address[] public blacklist; // 運営アカウント
@@ -139,6 +138,31 @@ contract MessiahSystem {
         return returnArray;
     }
 
+    function getSubmissions(uint256 proposalId, uint256 page)
+        external
+        view
+        returns (Submission[] memory)
+    {
+        // 提出一覧
+        uint256 originalLength = _submitters[proposalId].length;
+        if (originalLength <= DATA_PER_PAGE * (page - 1)) {
+            return new Submission[](0);
+        }
+
+        uint256 returnLength = DATA_PER_PAGE;
+        if (originalLength < DATA_PER_PAGE * (page + 1)) {
+            returnLength = originalLength - DATA_PER_PAGE * (page - 1);
+        }
+
+        Submission[] memory returnArray = new Submission[](returnLength);
+        for (uint256 i = 0; i < returnLength; i++) {
+            returnArray[i] = submissions[proposalId][
+                _submitters[proposalId][DATA_PER_PAGE * (page - 1) + i]
+            ];
+        }
+        return returnArray;
+    }
+
     /* ########## not Pure/View External Functions ########## */
 
     function propose(
@@ -171,6 +195,20 @@ contract MessiahSystem {
         );
         _workerAddresses[proposalId].push(msg.sender);
         workers[proposalId][msg.sender] = Worker(msg.sender, name, url);
+    }
+
+    function submitProduct(uint256 proposalId, string memory comment) external {
+        // 提出
+        require(
+            workers[proposalId][msg.sender].addr != address(0),
+            "You must enter the proposal before submit."
+        );
+        _submitters[proposalId].push(msg.sender);
+        submissions[proposalId][msg.sender] = Submission(
+            proposalId,
+            msg.sender,
+            comment
+        );
     }
 
     function vote(uint256 proposalId, address worker) external {
@@ -214,14 +252,13 @@ contract MessiahSystem {
         uint256 reward
     ) private {
         uint256 timestamp = block.timestamp;
-        uint256 id = _createProposalId(
-            timestamp,
-            proposer,
-            title,
-            description,
-            reward
+        uint256 id = uint256(
+            keccak256(
+                abi.encode(timestamp, proposer, title, description, reward)
+            )
         );
-        Proposal memory proposal = Proposal(
+        _proposalIds.push(id);
+        proposals[id] = Proposal(
             id,
             timestamp,
             proposer,
@@ -229,8 +266,6 @@ contract MessiahSystem {
             description,
             reward
         );
-        _proposalIds.push(id);
-        proposals[id] = proposal;
         emit Propose(proposer, id);
     }
 
@@ -251,27 +286,6 @@ contract MessiahSystem {
         );
         subOriginalTokenAddress = originalTokenAddress;
         subMessiahTokenAddress = address(messiahToken);
-    }
-
-    function _createProposalId(
-        uint256 timestamp,
-        address proposer,
-        string memory title,
-        string memory description,
-        uint256 reward
-    ) private pure returns (uint256) {
-        return
-            uint256(
-                keccak256(
-                    abi.encodePacked(
-                        timestamp,
-                        proposer,
-                        title,
-                        description,
-                        reward
-                    )
-                )
-            );
     }
 
     /* ########## Oracle Functions ########## */

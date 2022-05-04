@@ -22,6 +22,7 @@ describe('System', () => {
   let system: MessiahSystem;
   let proposal: MessiahSystem.ProposalStruct;
   let worker: MessiahSystem.WorkerStruct;
+  let submission: MessiahSystem.SubmissionStruct;
 
   before(async () => {
     // Test signers
@@ -65,7 +66,7 @@ describe('System', () => {
       .then(factory => factory.attach(messiahSystemAddress));
   });
 
-  it('Chake token addresses', async () => {
+  it('Chack token addresses', async () => {
     expect(await system.mainOriginalTokenAddress()).to.not.equal(
       constants.AddressZero
     );
@@ -171,5 +172,27 @@ describe('System', () => {
     expect(workers[0].addr).to.equal(signers[0].address);
     expect(workers[0].name).to.equal('First proposer');
     expect(workers[0].url).to.equal('https://...');
+  });
+
+  it('Submit product', async () => {
+    await system.connect(signers[0]).submitProduct(proposal.id, 'brabrabra...');
+    submission = await system.submissions(proposal.id, signers[0].address);
+    expect(submission.proposalId).to.equal(proposal.id);
+    expect(submission.workerAddress).to.equal(signers[0].address);
+    expect(submission.comment).to.equal('brabrabra...');
+  });
+
+  it('Get all submissions', async () => {
+    let submissions: MessiahSystem.SubmissionStructOutput[] = [];
+    let next, page;
+    while (next === undefined || next.length !== 0) {
+      next = await system.getSubmissions(proposal.id, page || 1);
+      submissions = submissions.concat(next);
+      page = (page || 1) + 1;
+    }
+    expect(submissions.length).to.equal(1);
+    expect(submissions[0].proposalId).to.equal(submission.proposalId);
+    expect(submissions[0].workerAddress).to.equal(submission.workerAddress);
+    expect(submissions[0].comment).to.equal(submission.comment);
   });
 });

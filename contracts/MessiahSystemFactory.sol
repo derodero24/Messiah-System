@@ -6,6 +6,7 @@ import "hardhat/console.sol";
 import "./MessiahSystem.sol";
 
 contract MessiahSystemFactory {
+    // Main token address -> Messiah System address
     mapping(address => address) public messiahSystemAddress;
 
     function deployMessiahSystem(
