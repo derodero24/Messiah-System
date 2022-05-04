@@ -9,10 +9,13 @@ import {
   useQuery,
 } from '@apollo/client';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
+import ReplayIcon from '@mui/icons-material/Replay';
 import {
   Box,
   Button,
+  colors,
   Grid,
+  IconButton,
   Paper,
   Table,
   TableBody,
@@ -178,19 +181,19 @@ function TokenBalanceGraph() {
 function Step1() {
   const [data, setData] = React.useState([{}]);
   const [blacklist, setBlacklist] = React.useState<string[]>([]);
-  const { voteForBlacklist } = React.useContext(WalletContext);
+  const { voteForBlacklist, claimMessiahToken, getBlacklist } =
+    React.useContext(WalletContext);
 
-  const claimPressed = () => {};
-
-  const submitBlacklist = () => {
-    console.log(blacklist);
+  const claimPressed = () => {
+    claimMessiahToken();
   };
 
-  const vote = (address: string) => {
-    // const tmp = blacklist;
-    // tmp.push(address);
-    // setBlacklist(tmp);
-    voteForBlacklist(address, Option.FOR);
+  const updateBlacklist = React.useCallback(async () => {
+    await getBlacklist(1).then(res => setBlacklist(res));
+  }, [getBlacklist]);
+
+  const vote = async (address: string) => {
+    await voteForBlacklist(address, Option.FOR);
   };
 
   React.useEffect(() => {
@@ -203,6 +206,11 @@ function Step1() {
     });
     setData(dummy_balance);
   }, []);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => updateBlacklist(), 1000);
+    return () => clearInterval(timer);
+  }, [updateBlacklist]);
 
   return (
     <div>
@@ -220,22 +228,32 @@ function Step1() {
 
       <BasicTable data={data} funcVote={vote} />
 
-      <Typography variant='h4' gutterBottom>
-        Blacklist
-      </Typography>
-      {blacklist.map(item => {
-        return (
-          <div key={item}>
-            <p>{item}</p>
-          </div>
-        );
-      })}
-      <Button onClick={submitBlacklist}>submit Blacklist</Button>
+      <Box sx={{ my: 4 }}>
+        <Typography variant='h4'>
+          Blacklist
+          <IconButton
+            sx={{ color: colors.blue[500] }}
+            onClick={updateBlacklist}
+          >
+            <ReplayIcon />
+          </IconButton>
+        </Typography>
 
-      <Typography variant='h4' gutterBottom>
-        Go Eden
-      </Typography>
-      <Button onClick={claimPressed}>Claim new coin</Button>
+        {blacklist.map(item => {
+          return (
+            <div key={item} style={{ textIndent: '2em' }}>
+              <p>{item}</p>
+            </div>
+          );
+        })}
+      </Box>
+
+      <Box sx={{ my: 4 }}>
+        <Typography variant='h4' gutterBottom>
+          Go Eden
+        </Typography>
+        <Button onClick={claimPressed}>Claim new coin</Button>
+      </Box>
     </div>
   );
 }

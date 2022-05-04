@@ -211,6 +211,12 @@ contract MessiahSystem {
     }
 
     /* ########## not Pure/View External Functions ########## */
+    function updateProposalState() external {
+        for (uint256 i = 0; i < _proposalIds.length; i++) {
+            _updateProposalState(_proposalIds[i]);
+        }
+    }
+
     function propose(
         string memory title,
         string memory description,
@@ -335,9 +341,11 @@ contract MessiahSystem {
         uint256 totalAbstain = tallies[targetId].totalAbstain;
         // (投票数がtotalSupplyの4%以上) かつ (賛成 > 反対)
         uint256 total = totalFor + totalAgainst + totalAbstain;
-        return
-            (total * 100) / _fetchTotalSupply(mainOriginalTokenAddress) >= 4 &&
-            totalFor > totalAgainst;
+        // TODO
+        // return
+        //     (total * 100) / _fetchTotalSupply(mainOriginalTokenAddress) >= 4 &&
+        //     totalFor > totalAgainst;
+        return total > 0 && totalFor > totalAgainst;
     }
 
     function _propose(
@@ -443,7 +451,7 @@ contract MessiahSystem {
         view
         returns (uint256)
     {
-        return ERC20(tokenAddress).balanceOf(account);
+        return ERC721(tokenAddress).balanceOf(account);
     }
 
     function _fetchTotalSupply(address tokenAddress)
@@ -460,5 +468,17 @@ contract MessiahSystem {
         returns (uint256)
     {
         return 10;
+    }
+
+    /* ########## Test Functions ########## */
+    function endFreezing() external {
+        // 資産ロック期間終了
+        deploymentTimestamp -= FREEZING_PERIOD;
+    }
+
+    function endVoting(uint256 proposalId) external {
+        // 資産ロック期間終了
+        proposals[proposalId].timestamp -= VOTING_PERIOD;
+        _updateProposalState(proposalId);
     }
 }

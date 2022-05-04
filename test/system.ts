@@ -131,7 +131,8 @@ describe('System', () => {
   });
 
   it('Wait until end freezing...', async () => {
-    await new Promise<void>(resolve => setTimeout(() => resolve(), 8_000));
+    // await new Promise<void>(resolve => setTimeout(() => resolve(), 8_000));
+    await system.endFreezing();
   });
 
   it('Claim messsiah token', async () => {
@@ -248,7 +249,8 @@ describe('System', () => {
   });
 
   it('Wait until end proposal voting...', async () => {
-    await new Promise<void>(resolve => setTimeout(() => resolve(), 8_000));
+    // await new Promise<void>(resolve => setTimeout(() => resolve(), 8_000));
+    await system.endVoting(proposal.id);
   });
 
   it('Submit product', async () => {
