@@ -8,6 +8,9 @@ import TableRow from '@mui/material/TableRow';
 
 import {Grid, TextField, MenuItem, Box, Button, Typography, Fab, Paper} from "@mui/material";
 import {Send, AddPhotoAlternate, HowToVote} from "@mui/icons-material";
+import { WalletContext } from './ethereum/WalletProvider';
+import { MessiahSystem} from '../typechain-types';
+import { BigNumberish } from "ethers";
 
 
 
@@ -17,19 +20,20 @@ function BasicTable(props: { data: any[]; }) {
       <Table sx={{ minWidth: 650 }} aria-label="simple table">
         <TableHead>
           <TableRow>
-            <TableCell align="right">Proposal</TableCell>
+            <TableCell align="right">Title</TableCell>
+            <TableCell align="right">Description</TableCell>
             <TableCell align="right">Reward</TableCell>
-            <TableCell align="right">Vote</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {props.data.map((row) => (
             <TableRow
-              key={row.wallet}
+              key={Number(row.id)}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
-              <TableCell align="right">{row.proposal}</TableCell>
-              <TableCell align="right">{row.reward}</TableCell>
+              <TableCell align="right">{row.title}</TableCell>
+              <TableCell align="right">{row.description}</TableCell>
+              <TableCell align="right">{Number(row.reward)}</TableCell>
               <TableCell align="right"><Button><HowToVote/></Button></TableCell>
             </TableRow>
           ))}
@@ -41,23 +45,44 @@ function BasicTable(props: { data: any[]; }) {
 
 
 type ProposalProfile = {
-    "proposal": string;
-    "reward": string;
+    "title":string;
+    "description": string;
+    "reward": number;
 }
 
-const dummy_proposal = [
-    {"proposal":"hogehoge1", "reward":"2000 USDC"},
-    {"proposal":"hogehoge2", "reward":"100 USDC"},
-    {"proposal":"hogehoge3", "reward":"2500 USDC"},
-    {"proposal":"hogehoge4", "reward":"20500 USDC"},
-    {"proposal":"hogehoge5", "reward":"23000 USDC"}
-];
+type ProposalStruct = {
+  id: BigNumberish;
+  timestamp: BigNumberish;
+  proposer: string;
+  title: string;
+  description: string;
+  reward: BigNumberish;
+  state:BigNumberish;
+};
+
 
 function Step2(){
-    const [proposal, setProposal] = React.useState<ProposalProfile>({proposal: "", reward:""});
+    const {getProposal, submitProposal} = React.useContext(WalletContext);
+    const [proposal, setProposal] = React.useState<ProposalProfile>({title: "", description:"", reward:0});
+    const [proposalData, setProposalData] = React.useState<MessiahSystem.ProposalStruct[]>([]);
 
-    const submitProposal = () => {
+    const submitProposalPressed = async() => {
+      const res = await submitProposal(proposal.title, proposal.description, proposal.reward);
     };
+
+    React.useEffect(()=>{
+      loadProposalData();
+    },[]);
+
+    const loadProposalData = async()=>{
+      const data = await getProposal(1);
+      console.log(data);
+
+      if(!data){
+        return 0;
+      }
+      setProposalData(data);
+    }
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setProposal({
@@ -74,7 +99,7 @@ function Step2(){
               </Box>
           </Grid>
 
-        <BasicTable data={dummy_proposal}/>
+        <BasicTable data={proposalData}/>
 
         <Grid container justifyContent={"center"}>
           <Grid item xs={12}>
@@ -83,10 +108,23 @@ function Step2(){
           <Grid item xs={12}>
             <TextField
               type="text"
-              name="proposal"
-              value={proposal.proposal}
+              name="title"
+              value={proposal.title}
               onChange={handleChange}
-              label="hogehoge"
+              label="title"
+              placeholder="hogehoge"
+              fullWidth
+              variant="outlined"
+              required
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              type="text"
+              name="description"
+              value={proposal.description}
+              onChange={handleChange}
+              label="description"
               placeholder="hogehoge"
               fullWidth
               variant="outlined"
@@ -99,15 +137,15 @@ function Step2(){
               name="reward"
               value={proposal.reward}
               onChange={handleChange}
-              label="2000USDC"
-              placeholder="2000USDC"
+              label="Reward"
+              placeholder="2000"
               fullWidth
               variant="outlined"
               required
             />
           </Grid>
           <Grid item xs={12}>
-            <Button variant="contained" onClick={submitProposal} startIcon={<Send />} fullWidth type="button">Submit Proposal</Button>
+            <Button variant="contained" onClick={submitProposalPressed} startIcon={<Send />} fullWidth type="button">Submit Proposal</Button>
           </Grid>
         </Grid>
       </div>

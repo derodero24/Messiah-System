@@ -12,7 +12,7 @@ type messiahProps = {
 
 
 function OtherSite(){
-    const {deployMessiahSystem, checkMessiahExists} = React.useContext(WalletContext);
+    const {deployMessiahSystem, checkMessiahExists, updateContract} = React.useContext(WalletContext);
     const [createMessiahProps, setCreateMessiahProps] = React.useState<messiahProps>({erc721Add:"", erc20Add:""});
     const [erc721Address, setERC721Address] = React.useState("");
     const [messiahExists, setMessiahExists] = React.useState(false);
@@ -32,6 +32,7 @@ function OtherSite(){
         }
         else{
             setMessiahExists(true);
+            await updateContract(res);
         }
 
     }
@@ -48,6 +49,7 @@ function OtherSite(){
         }
         else{
             setMessiahExists(true);
+            await updateContract(res);
         }
 
         setCheckFlag(true);
