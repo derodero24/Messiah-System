@@ -56,8 +56,8 @@ contract MessiahSystem {
     /* ########## Variable ########## */
 
     // constant
-    uint256 public constant FREEZING_PERIOD = 0; // TODO:2 weeks;
-    uint256 public constant VOTING_PERIOD = 1 weeks;
+    uint256 public constant FREEZING_PERIOD = 0; // TODO: 1 weeks;
+    uint256 public constant VOTING_PERIOD = 10 seconds; // TODO: 1 weeks;
     uint256 public constant DATA_PER_PAGE = 100;
 
     // info
@@ -74,12 +74,15 @@ contract MessiahSystem {
     mapping(uint256 => uint256[]) private _submissionIds;
     mapping(uint256 => Submission) public submissions;
 
-    // Vote (proposal/submission ID -> info)
+    // Vote (account/proposal/submission ID -> info)
     mapping(uint256 => Tally) public tallies;
     mapping(uint256 => mapping(address => Option)) public votes;
 
+    // // Vote for blacklist
+    // mapping(address => Tally) public blacklistTally;
+
     // Others
-    address[] public blacklist; // 運営アカウント
+    // mapping(address => Tally) public blacklistTally; // 運営アカウント投票
     mapping(address => bool) public hasClaimed; // サブトークンをclaim済みか
 
     /* ########## Constructor ########## */
@@ -97,31 +100,53 @@ contract MessiahSystem {
 
     /* ########## Modifiers ########## */
 
+    modifier beforeFreezing() {
+        // 資産ロック解除前の処理
+        require(
+            block.timestamp < deploymentTimestamp + FREEZING_PERIOD,
+            "This operation cannot execute any more"
+        );
+        _;
+    }
+
     modifier afterFreezing() {
         // 資産ロック解除後の処理
         require(
             block.timestamp > deploymentTimestamp + FREEZING_PERIOD,
-            "This operation cannot be executed yet."
+            "This operation cannot be executed yet"
         );
         _;
     }
 
     modifier onlyForActiveProposal(uint256 proposalId) {
         // 有効なProposalに対する処理
-        require(proposals[proposalId].id != 0, "Invalid proposal ID.");
+        require(proposals[proposalId].id != 0, "Invalid proposal ID");
+        _updateProposalState(proposalId);
         require(
             proposals[proposalId].state == ProposalState.VOTING ||
                 proposals[proposalId].state == ProposalState.DEVELOPING,
-            "This proposal is not active."
-        );
-        require(
-            block.timestamp < proposals[proposalId].timestamp + VOTING_PERIOD,
-            "This operation cannot be executed any more."
+            "This proposal is not active"
         );
         _;
     }
 
-    /* ########## Pure/View External Functions ########## */
+    /* ########## Pure/View Public/External Functions ########## */
+
+    function isBlacklisted(address account) public view returns (bool) {
+        // 資産ロック解除前はfalse
+        if (block.timestamp < deploymentTimestamp + FREEZING_PERIOD)
+            return false;
+
+        uint256 id = _accountId(account);
+        uint256 totalFor = tallies[id].totalFor;
+        uint256 totalAgainst = tallies[id].totalAgainst;
+        uint256 totalAbstain = tallies[id].totalAbstain;
+        // (投票数がtotalSupplyの10%以上) かつ (賛成 > 反対)
+        uint256 total = totalFor + totalAgainst + totalAbstain;
+        return
+            (total * 100) / _fetchTotalSupply(mainOriginalTokenAddress) < 10 &&
+            totalFor > totalAgainst;
+    }
 
     function getProposals(uint256 page)
         external
@@ -174,7 +199,6 @@ contract MessiahSystem {
     }
 
     /* ########## not Pure/View External Functions ########## */
-
     function propose(
         string memory title,
         string memory description,
@@ -189,7 +213,7 @@ contract MessiahSystem {
     {
         require(
             proposals[proposalId].proposer == msg.sender,
-            "This operation can be excuted by only proposer."
+            "This operation can be excuted by only proposer"
         );
         proposals[proposalId].state = ProposalState.CANCELED;
     }
@@ -200,32 +224,42 @@ contract MessiahSystem {
         string memory comment
     ) external onlyForActiveProposal(proposalId) {
         // 提出
+        require(
+            proposals[proposalId].state == ProposalState.DEVELOPING,
+            "Cannot submit now"
+        );
         uint256 id = uint256(keccak256(abi.encode(proposalId, msg.sender)));
         _submissionIds[proposalId].push(id);
         submissions[id] = Submission(id, proposalId, msg.sender, url, comment);
         emit Submit(msg.sender, id);
     }
 
-    function vote(uint256 targetId, Option option) external {
-        // 投票 (提案の採択, 報酬の支払い, 両方に対応)
+    function voteForBlacklist(address account, Option option)
+        external
+        beforeFreezing
+    {
+        _vote(_accountId(account), option);
+    }
+
+    function voteForProposal(uint256 proposalId, Option option)
+        external
+        onlyForActiveProposal(proposalId)
+    {
         require(
-            proposals[targetId].id != 0 || submissions[targetId].id != 0,
-            "Invalid target ID."
+            proposals[proposalId].state == ProposalState.VOTING,
+            "Cannot vote now"
         );
+        _vote(proposalId, option);
+    }
 
-        // Reset tally
-        Option lastOption = votes[targetId][msg.sender];
-        if (lastOption == Option.FOR) tallies[targetId].totalFor--;
-        else if (lastOption == Option.AGAINST) tallies[targetId].totalAgainst--;
-        else if (lastOption == Option.ABSTAIN) tallies[targetId].totalAbstain--;
-
-        // Update tally
-        votes[targetId][msg.sender] = option;
-        if (option == Option.FOR) tallies[targetId].totalFor++;
-        else if (option == Option.AGAINST) tallies[targetId].totalAgainst++;
-        else if (option == Option.ABSTAIN) tallies[targetId].totalAbstain++;
-
-        emit Vote(msg.sender, targetId, option);
+    function voteForSubmission(uint256 submissionId, Option option) external {
+        Submission memory submission = submissions[submissionId];
+        require(submission.id != 0, "Invalid submission ID");
+        require(
+            proposals[submission.proposalId].state == ProposalState.DEVELOPING,
+            "Cannot vote now"
+        );
+        _vote(submissionId, option);
     }
 
     function claimReward(uint256 proposalId) external {
@@ -237,9 +271,10 @@ contract MessiahSystem {
     function claimMessiahToken() external afterFreezing {
         require(
             subOriginalTokenAddress != address(0),
-            "Sub token doesn't set yet."
+            "Sub token doesn't set yet"
         );
-        require(hasClaimed[msg.sender] == false, "You've already claimed.");
+        require(isBlacklisted(msg.sender) == false, "You are blacklisted");
+        require(hasClaimed[msg.sender] == false, "You've already claimed");
         uint256 amount = _fetchClaimableAmount(
             subOriginalTokenAddress,
             msg.sender
@@ -249,6 +284,36 @@ contract MessiahSystem {
     }
 
     /* ########## Private Functions ########## */
+
+    function _accountId(address account) private pure returns (uint256) {
+        return uint256(keccak256(abi.encode(account)));
+    }
+
+    function _updateProposalState(uint256 proposalId) private {
+        // Proposalのステート更新
+        if (
+            block.timestamp > proposals[proposalId].timestamp + VOTING_PERIOD &&
+            proposals[proposalId].state == ProposalState.VOTING
+        ) {
+            if (_isAccepted(proposalId)) {
+                proposals[proposalId].state = ProposalState.DEVELOPING;
+            } else {
+                proposals[proposalId].state = ProposalState.DEFEATED;
+            }
+        }
+    }
+
+    function _isAccepted(uint256 targetId) private view returns (bool) {
+        // 採択されるか
+        uint256 totalFor = tallies[targetId].totalFor;
+        uint256 totalAgainst = tallies[targetId].totalAgainst;
+        uint256 totalAbstain = tallies[targetId].totalAbstain;
+        // (投票数がtotalSupplyの10%以上) かつ (賛成 > 反対)
+        uint256 total = totalFor + totalAgainst + totalAbstain;
+        return
+            (total * 100) / _fetchTotalSupply(mainOriginalTokenAddress) < 10 &&
+            totalFor > totalAgainst;
+    }
 
     function _propose(
         address proposer,
@@ -275,11 +340,27 @@ contract MessiahSystem {
         emit Propose(proposer, id);
     }
 
+    function _vote(uint256 targetId, Option option) private {
+        // 投票 (提案の採択, 報酬の支払い, 両方に対応)`
+        // Reset tally
+        Option lastOption = votes[targetId][msg.sender];
+        if (lastOption == Option.FOR) tallies[targetId].totalFor--;
+        else if (lastOption == Option.AGAINST) tallies[targetId].totalAgainst--;
+        else if (lastOption == Option.ABSTAIN) tallies[targetId].totalAbstain--;
+        // Update tally
+        votes[targetId][msg.sender] = option;
+        if (option == Option.FOR) tallies[targetId].totalFor++;
+        else if (option == Option.AGAINST) tallies[targetId].totalAgainst++;
+        else if (option == Option.ABSTAIN) tallies[targetId].totalAbstain++;
+        // Emit event
+        emit Vote(msg.sender, targetId, option);
+    }
+
     function _setSubToken(address originalTokenAddress) private {
         // TODO: オリジナルトークンのスナップショット保存
         require(
             subOriginalTokenAddress == address(0),
-            "Sub token has already set."
+            "Sub token has already set"
         );
         MessiahToken20 messiahToken = new MessiahToken20(
             _fetchTokenName(originalTokenAddress),

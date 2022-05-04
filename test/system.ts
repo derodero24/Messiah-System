@@ -149,6 +149,44 @@ describe('System', () => {
     expect(proposals[0].state).to.equal(proposal.state);
   });
 
+  it('Vote for the proposal', async () => {
+    await system.connect(signers[0]).voteForProposal(proposal.id, Option.FOR);
+    await system
+      .connect(signers[1])
+      .voteForProposal(proposal.id, Option.AGAINST);
+    await system
+      .connect(signers[2])
+      .voteForProposal(proposal.id, Option.ABSTAIN);
+    await system
+      .connect(signers[3])
+      .voteForProposal(proposal.id, Option.ABSTAIN);
+    // Check own
+    expect(
+      await system.connect(signers[0]).votes(proposal.id, signers[0].address)
+    ).to.equal(Option.FOR);
+    // Check others
+    expect(
+      await system.connect(signers[0]).votes(proposal.id, signers[1].address)
+    ).to.equal(Option.AGAINST);
+    // Check tally
+    const tally = await system.tallies(proposal.id);
+    expect(tally.totalFor).to.equal(1);
+    expect(tally.totalAgainst).to.equal(1);
+    expect(tally.totalAbstain).to.equal(2);
+  });
+
+  it('Can change votes', async () => {
+    await system.connect(signers[3]).voteForProposal(proposal.id, Option.FOR);
+    const tally = await system.tallies(proposal.id);
+    expect(tally.totalFor).to.equal(2);
+    expect(tally.totalAgainst).to.equal(1);
+    expect(tally.totalAbstain).to.equal(1);
+  });
+
+  it('Wait until end voting...', async () => {
+    await new Promise<void>(resolve => setTimeout(() => resolve(), 10_000));
+  });
+
   it('Submit product', async () => {
     const receipt = await (
       await system
@@ -179,35 +217,6 @@ describe('System', () => {
     expect(submissions[0].comment).to.equal(submission.comment);
   });
 
-  it('Vote to the proposal', async () => {
-    await system.connect(signers[0]).vote(proposal.id, Option.FOR);
-    await system.connect(signers[1]).vote(proposal.id, Option.AGAINST);
-    await system.connect(signers[2]).vote(proposal.id, Option.ABSTAIN);
-    await system.connect(signers[3]).vote(proposal.id, Option.ABSTAIN);
-
-    // Check own
-    expect(
-      await system.connect(signers[0]).votes(proposal.id, signers[0].address)
-    ).to.equal(Option.FOR);
-    // Check others
-    expect(
-      await system.connect(signers[0]).votes(proposal.id, signers[1].address)
-    ).to.equal(Option.AGAINST);
-    // Check tally
-    const tally = await system.tallies(proposal.id);
-    expect(tally.totalFor).to.equal(1);
-    expect(tally.totalAgainst).to.equal(1);
-    expect(tally.totalAbstain).to.equal(2);
-  });
-
-  it('Can change votes', async () => {
-    await system.connect(signers[3]).vote(proposal.id, Option.FOR);
-    const tally = await system.tallies(proposal.id);
-    expect(tally.totalFor).to.equal(2);
-    expect(tally.totalAgainst).to.equal(1);
-    expect(tally.totalAbstain).to.equal(1);
-  });
-
   it('Cannnot cancel the proposal by unproposer', async () => {
     // Should be error
     try {
@@ -233,7 +242,7 @@ describe('System', () => {
       if (e instanceof AssertionError) assert.fail();
     }
     try {
-      await system.vote(proposal.id, Option.FOR);
+      await system.voteForProposal(proposal.id, Option.FOR);
       assert.fail();
     } catch (e) {
       if (e instanceof AssertionError) assert.fail();
