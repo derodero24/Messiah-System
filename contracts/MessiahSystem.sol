@@ -17,6 +17,7 @@ contract MessiahSystem {
         string title;
         string description;
         uint256 reward;
+        bool canceled;
     }
 
     struct Worker {
@@ -79,9 +80,24 @@ contract MessiahSystem {
     /* ########## Modifiers ########## */
 
     modifier afterFreezing() {
+        // 資産ロック解除後の処理
         require(
             block.timestamp > deploymentTimestamp + FREEZING_PERIOD,
             "This operation cannot be executed yet."
+        );
+        _;
+    }
+
+    modifier onlyForValidProposal(uint256 proposalId) {
+        // 有効なProposalに対する処理
+        require(proposals[proposalId].id != 0, "Invalid proposal ID.");
+        require(
+            proposals[proposalId].canceled == false,
+            "The proposal has already canseled."
+        );
+        require(
+            block.timestamp < proposals[proposalId].timestamp + VOTING_PERIOD,
+            "This operation cannot be executed any more."
         );
         _;
     }
@@ -173,7 +189,7 @@ contract MessiahSystem {
         _propose(msg.sender, title, description, reward);
     }
 
-    function discardProposal(uint256 proposalId) external {
+    function cancelProposal(uint256 proposalId) external {
         // proposalの破棄
     }
 
@@ -181,14 +197,8 @@ contract MessiahSystem {
         uint256 proposalId,
         string memory name,
         string memory url
-    ) external {
+    ) external onlyForValidProposal(proposalId) {
         // 立候補
-        Proposal memory proposal = proposals[proposalId];
-        require(proposal.timestamp != 0, "Invalid proposal ID.");
-        require(
-            block.timestamp < proposal.timestamp + VOTING_PERIOD,
-            "This operation cannot be executed any more."
-        );
         require(
             workers[proposalId][msg.sender].addr == address(0),
             "You've already entered."
@@ -211,14 +221,16 @@ contract MessiahSystem {
         );
     }
 
-    function vote(uint256 proposalId, address worker) external {
+    function vote(uint256 proposalId, address worker)
+        external
+        onlyForValidProposal(proposalId)
+    {
         // 投票
-        require(proposals[proposalId].id != 0, "Invalid proposal ID.");
         require(
             workers[proposalId][worker].addr != address(0),
             "Invalid worker address."
         );
-        // TODO: 時間制限
+        // require();
         // TODO: 提案の採択, 報酬の支払い, 両方に対応
         // proposals[proposalId].totalVotes++;
     }
@@ -264,7 +276,8 @@ contract MessiahSystem {
             proposer,
             title,
             description,
-            reward
+            reward,
+            false
         );
         emit Propose(proposer, id);
     }

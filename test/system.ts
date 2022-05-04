@@ -131,6 +131,7 @@ describe('System', () => {
     expect(proposals[0].title).to.equal(proposal.title);
     expect(proposals[0].description).to.equal(proposal.description);
     expect(proposals[0].reward).to.equal(proposal.reward);
+    expect(proposals[0].canceled).to.equal(proposal.canceled);
   });
 
   it('No worker yet', async () => {
