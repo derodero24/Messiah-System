@@ -13,11 +13,11 @@ import {
   Provider,
   Web3Provider,
 } from '@ethersproject/providers';
-
-import { MessiahSystemFactory, MessiahSystem} from '../../typechain-types';
-import messiahSystemFactory from './abi/MessiahSystemFactory.json';
-import messiahSystem from "./abi/MessiahSystem.json";
 import { DataArrayTwoTone, Description } from '@mui/icons-material';
+
+import { MessiahSystem, MessiahSystemFactory } from '../../typechain-types';
+import messiahSystem from './abi/MessiahSystem.json';
+import messiahSystemFactory from './abi/MessiahSystemFactory.json';
 
 declare global {
   interface Window {
@@ -31,8 +31,8 @@ type Wallet =
       signer: JsonRpcSigner;
       address: string;
       contract: {
-        messiahSystemFactory:MessiahSystemFactory;
-        messiahSystem?:MessiahSystem;
+        messiahSystemFactory: MessiahSystemFactory;
+        messiahSystem?: MessiahSystem;
       };
     }
   | undefined;
@@ -40,19 +40,19 @@ type Wallet =
 export const WalletContext = createContext({
   wallet: undefined as Wallet,
   connectWallet: () => {},
-  checkMessiahExists: async(erc721Add) => null as string,
-  deployMessiahSystem: async(erc721Add, erc20Add) =>{},
-  updateContract:async(messiahSystemAddressInput)=>{},
-  getProposal:async(paga)=>null as string,
-  submitProposal:async(title, description, reward)=>{},
+  checkMessiahExists: async erc721Add => null as string,
+  deployMessiahSystem: async (erc721Add, erc20Add) => {},
+  updateContract: async messiahSystemAddressInput => {},
+  getProposal: async paga => null as string,
+  submitProposal: async (title, description, reward) => {},
 });
 
-const contractAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+const contractAddress = '0x03cE06d6Bb590447a8d09067e1959fc39C0bBD78';
 
 export default function WalletProvider(props: { children: ReactNode }) {
   const [wallet, setWallet] = useState<Wallet>();
-  const [walletAddress, setWalletAddress] = useState("");
-  const [messiahSystemAddress, setMessiahSystemAddress] = useState("");
+  const [walletAddress, setWalletAddress] = useState('');
+  const [messiahSystemAddress, setMessiahSystemAddress] = useState('');
 
   const connectWallet = useCallback(() => {
     if (window.ethereum?.isMetaMask) {
@@ -84,14 +84,13 @@ export default function WalletProvider(props: { children: ReactNode }) {
 
       let messiahSystemContract;
 
-      if(messiahSystemAddress){
+      if (messiahSystemAddress) {
         messiahSystemContract = new Contract(
           messiahSystemAddress,
           messiahSystem.abi,
           signer
         ) as MessiahSystem;
-      }
-      else{
+      } else {
         messiahSystemContract = undefined;
       }
 
@@ -101,7 +100,10 @@ export default function WalletProvider(props: { children: ReactNode }) {
         provider,
         signer,
         address: addresses[0],
-        contract: { messiahSystemFactory: messiahSystemFactoryContract, messiahSystem:messiahSystemContract},
+        contract: {
+          messiahSystemFactory: messiahSystemFactoryContract,
+          messiahSystem: messiahSystemContract,
+        },
       });
     }
   };
@@ -117,53 +119,80 @@ export default function WalletProvider(props: { children: ReactNode }) {
     window.ethereum.on('chainChanged', () => window.location.reload());
   }, [wallet]);
 
-  const checkMessiahExists = async(erc721Add:string)=>{
-    const res = await wallet?.contract.messiahSystemFactory.messiahSystemAddress(erc721Add);
+  const checkMessiahExists = async (erc721Add: string) => {
+    const res =
+      await wallet?.contract.messiahSystemFactory.messiahSystemAddress(
+        erc721Add
+      );
     return res;
-  }
+  };
 
-  const deployMessiahSystem = async(erc721Add:string, erc20Add:string)=>{
-    await wallet?.contract.messiahSystemFactory.deployMessiahSystem(erc721Add, erc20Add);
-  }
+  const deployMessiahSystem = async (erc721Add: string, erc20Add: string) => {
+    await wallet?.contract.messiahSystemFactory.deployMessiahSystem(
+      erc721Add,
+      erc20Add
+    );
+  };
 
-  const updateContract = async(messiahSystemAddressInput:string)=>{
+  const updateContract = async (messiahSystemAddressInput: string) => {
     console.log(messiahSystemAddressInput);
     setMessiahSystemAddress(messiahSystemAddressInput);
 
     const provider = new Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
+    const signer = provider.getSigner();
 
-      const messiahSystemFactoryContract = new Contract(
-        contractAddress,
-        messiahSystemFactory.abi,
-        signer
-      ) as MessiahSystemFactory;
+    const messiahSystemFactoryContract = new Contract(
+      contractAddress,
+      messiahSystemFactory.abi,
+      signer
+    ) as MessiahSystemFactory;
 
-      const messiahSystemContract = new Contract(
-        messiahSystemAddressInput,
-        messiahSystem.abi,
-        signer
-      ) as MessiahSystem;
+    const messiahSystemContract = new Contract(
+      messiahSystemAddressInput,
+      messiahSystem.abi,
+      signer
+    ) as MessiahSystem;
 
-      setWallet({
-        provider,
-        signer,
-        address: walletAddress,
-        contract: { messiahSystemFactory: messiahSystemFactoryContract, messiahSystem:messiahSystemContract},
-      });
-  }
+    setWallet({
+      provider,
+      signer,
+      address: walletAddress,
+      contract: {
+        messiahSystemFactory: messiahSystemFactoryContract,
+        messiahSystem: messiahSystemContract,
+      },
+    });
+  };
 
-  const getProposal = async(page:number)=>{
+  const getProposal = async (page: number) => {
     const data = await wallet?.contract.messiahSystem?.getProposals(page);
     return data;
-  }
+  };
 
-  const submitProposal = async(title:string, description:string, reward:number)=>{
-    const res = await wallet?.contract.messiahSystem?.propose(title, description, reward);
-  }
+  const submitProposal = async (
+    title: string,
+    description: string,
+    reward: number
+  ) => {
+    const res = await wallet?.contract.messiahSystem?.propose(
+      title,
+      description,
+      reward
+    );
+  };
 
   return (
-    <WalletContext.Provider value={{ wallet, connectWallet, checkMessiahExists, deployMessiahSystem, updateContract, getProposal, submitProposal }}>
+    <WalletContext.Provider
+      value={{
+        wallet,
+        connectWallet,
+        checkMessiahExists,
+        deployMessiahSystem,
+        updateContract,
+        getProposal,
+        submitProposal,
+      }}
+    >
       {props.children}
     </WalletContext.Provider>
   );

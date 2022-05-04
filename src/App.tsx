@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext } from 'react';
 
 import { WalletContext } from './ethereum/WalletProvider';
 import TabPages from './tab_page';
@@ -10,9 +10,5 @@ export default function App(): JSX.Element {
     return <button onClick={connectWallet}>Connect Wallet</button>;
   }
 
-  return (
-    <>
-      <TabPages />
-    </>
-  );
+  return <TabPages />;
 }
