@@ -8,8 +8,27 @@ import "./MessiahTokens.sol";
 contract MessiahSystem {
     /* ########## Event ########## */
     event Propose(address indexed proposer, uint256 proposalId);
+    event Submit(address indexed submitter, uint256 submissionId);
+    event Vote(address indexed voter, Option option);
 
-    /* ########## Enum/Struct ########## */
+    /* ########## Enum ########## */
+    enum ProposalState {
+        VOTING,
+        DEVELOPING,
+        COMPLETED,
+        DEFEATED,
+        CANCELED
+    }
+
+    enum Option {
+        UNVOTED,
+        FOR,
+        AGAINST,
+        ABSTAIN
+    }
+
+    /* ########## Struct ########## */
+
     struct Proposal {
         uint256 id;
         uint256 timestamp;
@@ -17,19 +36,21 @@ contract MessiahSystem {
         string title;
         string description;
         uint256 reward;
-    }
-
-    struct Worker {
-        address addr;
-        string name;
-        string url;
+        ProposalState state;
     }
 
     struct Submission {
         uint256 id;
         uint256 proposalId;
-        address workerAddress;
+        address submitter;
+        string url;
         string comment;
+    }
+
+    struct Tally {
+        uint256 totalFor; // 賛成
+        uint256 totalAgainst; // 反対
+        uint256 totalAbstain; // 棄権
     }
 
     /* ########## Variable ########## */
@@ -49,16 +70,13 @@ contract MessiahSystem {
     uint256[] private _proposalIds;
     mapping(uint256 => Proposal) public proposals;
 
-    // Worker (proposal ID -> worker address -> info)
-    mapping(uint256 => address[]) private _workerAddresses;
-    mapping(uint256 => mapping(address => Worker)) public workers;
+    // Submission (proposal ID -> submitter address -> info)
+    mapping(uint256 => address[]) private _submitters;
+    mapping(uint256 => mapping(address => Submission)) public submissions;
 
-    // Vote (proposal ID -> voter address -> info)
-    // mapping(uint256 => mapping(address => Worker)) public VoteMap;
-
-    // Submission (proposal ID -> submission ID -> info)
-    mapping(uint256 => uint256[]) private _submissionIds;
-    mapping(uint256 => mapping(uint256 => Submission)) public submissions;
+    // Vote (proposal/submission ID -> info)
+    mapping(uint256 => Tally) public tallies;
+    mapping(uint256 => mapping(address => Option)) public votes;
 
     // Others
     address[] public blacklist; // 運営アカウント
@@ -80,9 +98,25 @@ contract MessiahSystem {
     /* ########## Modifiers ########## */
 
     modifier afterFreezing() {
+        // 資産ロック解除後の処理
         require(
             block.timestamp > deploymentTimestamp + FREEZING_PERIOD,
             "This operation cannot be executed yet."
+        );
+        _;
+    }
+
+    modifier onlyForActiveProposal(uint256 proposalId) {
+        // 有効なProposalに対する処理
+        require(proposals[proposalId].id != 0, "Invalid proposal ID.");
+        require(
+            proposals[proposalId].state == ProposalState.VOTING ||
+                proposals[proposalId].state == ProposalState.DEVELOPING,
+            "This proposal is not active."
+        );
+        require(
+            block.timestamp < proposals[proposalId].timestamp + VOTING_PERIOD,
+            "This operation cannot be executed any more."
         );
         _;
     }
@@ -114,15 +148,15 @@ contract MessiahSystem {
         return returnArray;
     }
 
-    function getWorkers(uint256 proposalId, uint256 page)
+    function getSubmissions(uint256 proposalId, uint256 page)
         external
         view
-        returns (Worker[] memory)
+        returns (Submission[] memory)
     {
-        // 立候補者一覧
-        uint256 originalLength = _workerAddresses[proposalId].length;
+        // 提出一覧
+        uint256 originalLength = _submitters[proposalId].length;
         if (originalLength <= DATA_PER_PAGE * (page - 1)) {
-            return new Worker[](0);
+            return new Submission[](0);
         }
 
         uint256 returnLength = DATA_PER_PAGE;
@@ -130,10 +164,10 @@ contract MessiahSystem {
             returnLength = originalLength - DATA_PER_PAGE * (page - 1);
         }
 
-        Worker[] memory returnArray = new Worker[](returnLength);
+        Submission[] memory returnArray = new Submission[](returnLength);
         for (uint256 i = 0; i < returnLength; i++) {
-            returnArray[i] = workers[proposalId][
-                _workerAddresses[proposalId][DATA_PER_PAGE * (page - 1) + i]
+            returnArray[i] = submissions[proposalId][
+                _submitters[proposalId][DATA_PER_PAGE * (page - 1) + i]
             ];
         }
         return returnArray;
@@ -149,41 +183,38 @@ contract MessiahSystem {
         _propose(msg.sender, title, description, reward);
     }
 
-    function discardProposal(uint256 proposalId) external {
-        // proposalの破棄
+    function cancelProposal(uint256 proposalId)
+        external
+        onlyForActiveProposal(proposalId)
+    {
+        proposals[proposalId].state = ProposalState.CANCELED;
     }
 
-    function enterProposal(
+    function submit(
         uint256 proposalId,
-        string memory name,
-        string memory url
-    ) external {
-        // 立候補
-        Proposal memory proposal = proposals[proposalId];
-        require(proposal.timestamp != 0, "Invalid proposal ID.");
-        require(
-            block.timestamp < proposal.timestamp + VOTING_PERIOD,
-            "This operation cannot be executed any more."
+        string memory url,
+        string memory comment
+    ) external onlyForActiveProposal(proposalId) {
+        // 提出
+        _submitters[proposalId].push(msg.sender);
+        uint256 id = uint256(keccak256(abi.encode(proposalId, msg.sender)));
+        submissions[proposalId][msg.sender] = Submission(
+            id,
+            proposalId,
+            msg.sender,
+            url,
+            comment
         );
-        require(
-            workers[proposalId][msg.sender].addr == address(0),
-            "You've already entered."
-        );
-        _workerAddresses[proposalId].push(msg.sender);
-        workers[proposalId][msg.sender] = Worker(msg.sender, name, url);
+        emit Submit(msg.sender, id);
     }
 
-    function vote(uint256 proposalId, address worker) external {
-        // 投票
-        require(proposals[proposalId].id != 0, "Invalid proposal ID.");
-        require(
-            workers[proposalId][worker].addr != address(0),
-            "Invalid worker address."
-        );
-        // TODO: 時間制限
-        // TODO: 提案の採択, 報酬の支払い, 両方に対応
-        // proposals[proposalId].totalVotes++;
-    }
+    // function vote(uint256 targetId, Option option) external {
+    //     // 投票
+    //     // require();
+    //     // TODO: 提案の採択, 報酬の支払い, 両方に対応
+    //     // proposals[proposalId].totalVotes++;
+    //     emit Vote(msg.sender, option);
+    // }
 
     function claimReward(uint256 proposalId) external {
         // 報酬をclaim
@@ -214,23 +245,21 @@ contract MessiahSystem {
         uint256 reward
     ) private {
         uint256 timestamp = block.timestamp;
-        uint256 id = _createProposalId(
-            timestamp,
-            proposer,
-            title,
-            description,
-            reward
+        uint256 id = uint256(
+            keccak256(
+                abi.encode(timestamp, proposer, title, description, reward)
+            )
         );
-        Proposal memory proposal = Proposal(
+        _proposalIds.push(id);
+        proposals[id] = Proposal(
             id,
             timestamp,
             proposer,
             title,
             description,
-            reward
+            reward,
+            ProposalState.VOTING
         );
-        _proposalIds.push(id);
-        proposals[id] = proposal;
         emit Propose(proposer, id);
     }
 
@@ -251,27 +280,6 @@ contract MessiahSystem {
         );
         subOriginalTokenAddress = originalTokenAddress;
         subMessiahTokenAddress = address(messiahToken);
-    }
-
-    function _createProposalId(
-        uint256 timestamp,
-        address proposer,
-        string memory title,
-        string memory description,
-        uint256 reward
-    ) private pure returns (uint256) {
-        return
-            uint256(
-                keccak256(
-                    abi.encodePacked(
-                        timestamp,
-                        proposer,
-                        title,
-                        description,
-                        reward
-                    )
-                )
-            );
     }
 
     /* ########## Oracle Functions ########## */

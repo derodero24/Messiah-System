@@ -21,7 +21,7 @@ describe('System', () => {
   let factory: MessiahSystemFactory;
   let system: MessiahSystem;
   let proposal: MessiahSystem.ProposalStruct;
-  let worker: MessiahSystem.WorkerStruct;
+  let submission: MessiahSystem.SubmissionStruct;
 
   before(async () => {
     // Test signers
@@ -65,7 +65,7 @@ describe('System', () => {
       .then(factory => factory.attach(messiahSystemAddress));
   });
 
-  it('Chake token addresses', async () => {
+  it('Chack token addresses', async () => {
     expect(await system.mainOriginalTokenAddress()).to.not.equal(
       constants.AddressZero
     );
@@ -108,11 +108,12 @@ describe('System', () => {
     ).wait();
     const proposalId = receipt.events?.[0].args?.proposalId;
     expect(proposalId.toString()).to.not.equal('0');
-
     proposal = await system.proposals(proposalId);
     expect(proposal.proposer).to.equal(signers[0].address);
     expect(proposal.title).to.equal('title');
     expect(proposal.description).to.equal('Some proposal');
+    expect(proposal.reward).to.equal(100);
+    expect(proposal.state).to.equal(0);
   });
 
   it('Get all proposals', async () => {
@@ -130,46 +131,50 @@ describe('System', () => {
     expect(proposals[0].title).to.equal(proposal.title);
     expect(proposals[0].description).to.equal(proposal.description);
     expect(proposals[0].reward).to.equal(proposal.reward);
+    expect(proposals[0].state).to.equal(proposal.state);
   });
 
-  it('No worker yet', async () => {
-    const workers = await system.getWorkers(proposal.id, 1);
-    expect(workers.length).to.equal(0);
-  });
-
-  it('Enter the proposal', async () => {
+  it('Submit product', async () => {
     await system
       .connect(signers[0])
-      .enterProposal(proposal.id, 'First proposer', 'https://...');
-    worker = await system.workers(proposal.id, signers[0].address);
-    expect(worker.addr).to.equal(signers[0].address);
-    expect(worker.name).to.equal('First proposer');
-    expect(worker.url).to.equal('https://...');
+      .submit(proposal.id, 'https://...', 'brabrabra...');
+    submission = await system.submissions(proposal.id, signers[0].address);
+    expect(submission.proposalId).to.equal(proposal.id);
+    expect(submission.submitter).to.equal(signers[0].address);
+    expect(submission.url).to.equal('https://...');
+    expect(submission.comment).to.equal('brabrabra...');
   });
 
-  it('Cannot enter the same proposal again', async () => {
+  it('Get all submissions', async () => {
+    let submissions: MessiahSystem.SubmissionStructOutput[] = [];
+    let next, page;
+    while (next === undefined || next.length !== 0) {
+      next = await system.getSubmissions(proposal.id, page || 1);
+      submissions = submissions.concat(next);
+      page = (page || 1) + 1;
+    }
+    expect(submissions.length).to.equal(1);
+    expect(submissions[0].proposalId).to.equal(submission.proposalId);
+    expect(submissions[0].submitter).to.equal(submission.submitter);
+    expect(submissions[0].url).to.equal(submission.url);
+    expect(submissions[0].comment).to.equal(submission.comment);
+  });
+
+  it('Cancel the proposal', async () => {
+    await system.cancelProposal(proposal.id);
+    proposal = await system.proposals(proposal.id);
+    expect(proposal.state).to.equal(4);
+  });
+
+  it('Cannot submit/vote to the canceled proposal', async () => {
     // Should be error
     try {
       await system
         .connect(signers[0])
-        .enterProposal(proposal.id, 'Same proposer', 'http://...');
+        .submit(proposal.id, 'https://...', 'New submission');
       assert.fail();
     } catch (e) {
       if (e instanceof AssertionError) assert.fail();
     }
-  });
-
-  it('Get all workers', async () => {
-    let workers: MessiahSystem.WorkerStructOutput[] = [];
-    let next, page;
-    while (next === undefined || next.length !== 0) {
-      next = await system.getWorkers(proposal.id, page || 1);
-      workers = workers.concat(next);
-      page = (page || 1) + 1;
-    }
-    expect(workers.length).to.equal(1);
-    expect(workers[0].addr).to.equal(signers[0].address);
-    expect(workers[0].name).to.equal('First proposer');
-    expect(workers[0].url).to.equal('https://...');
   });
 });
