@@ -81,8 +81,12 @@ function Step4(){
 
     return(
         <div>
-          <Typography variant="h3" gutterBottom>Reward Voting</Typography>
-
+            <Grid container alignItems="center" justifyContent="center">
+                <Box mt={5} mb={5}>
+                    <Typography variant="h2" gutterBottom component="div">Reward Voting</Typography>
+                </Box>
+            </Grid>
+            
         <BasicTable data={dummy_proposal_dev}/>
 
         <Grid container justifyContent={"center"}>

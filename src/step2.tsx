@@ -65,10 +65,16 @@ function Step2(){
         [event.target.name]: event.target.value,
         });
     };
+
     return(
         <div>
-          <Typography variant="h3" gutterBottom>Proposal List</Typography>
-          <BasicTable data={dummy_proposal}/>
+          <Grid container alignItems="center" justifyContent="center">
+              <Box mt={5} mb={5}>
+                  <Typography variant="h2" gutterBottom component="div">Proposal List</Typography>
+              </Box>
+          </Grid>
+
+        <BasicTable data={dummy_proposal}/>
 
         <Grid container justifyContent={"center"}>
           <Grid item xs={12}>

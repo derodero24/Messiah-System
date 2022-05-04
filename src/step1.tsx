@@ -185,7 +185,11 @@ function Step1(){
 
     return(
       <div>
-        <Typography variant="h3" gutterBottom>Expelled From Paradise</Typography>
+        <Grid container alignItems="center" justifyContent="center">
+            <Box mt={5} mb={5}>
+                <Typography variant="h2" gutterBottom component="div">Expelled From Paradice</Typography>
+            </Box>
+        </Grid>
 
         <ApolloProvider client={client}>
           <TokenBalanceGraph/>

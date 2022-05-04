@@ -11,7 +11,7 @@ function Step0(){
 
     return(
         <div>
-            <Typography variant="h3" gutterBottom>Do you want to creating Eden ? </Typography>
+            <Typography variant="h3" gutterBottom>Do you want to create Eden ? </Typography>
             <Button onClick={()=>{votePressed("yes")}}><ThumbUpOffAlt/></Button>
             <Button onClick={()=>{votePressed("no")}}><ThumbDownOffAlt/></Button>
         </div>

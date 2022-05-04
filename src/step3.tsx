@@ -197,7 +197,11 @@ function Step3(){
 
     return(
       <div>
-        <Typography variant="h3" gutterBottom>Proposal Entry</Typography>
+        <Grid container alignItems="center" justifyContent="center">
+            <Box mt={5} mb={5}>
+                <Typography variant="h2" gutterBottom component="div">Proposal Entry</Typography>
+            </Box>
+        </Grid>
         <ProposalTable data={dummy_proposal}/>
 
         <Box m={5}>

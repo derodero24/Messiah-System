@@ -14,8 +14,8 @@ import {
   Web3Provider,
 } from '@ethersproject/providers';
 
-import { Greeter } from '../../typechain-types';
-import GreeterInfo from './abi/Greeter.json';
+import { MessiahSystemFactory } from '../../typechain-types';
+import abi from './abi/abi.json';
 
 declare global {
   interface Window {
@@ -29,7 +29,7 @@ type Wallet =
       signer: JsonRpcSigner;
       address: string;
       contract: {
-        greeter: Greeter;
+        messiahSystemFactory:MessiahSystemFactory;
       };
     }
   | undefined;
@@ -37,9 +37,11 @@ type Wallet =
 export const WalletContext = createContext({
   wallet: undefined as Wallet,
   connectWallet: () => {},
+  checkMessiahExists: async(erc721Add) => null as string,
+  deployMessiahSystem: async(erc721Add, erc20Add) =>{},
 });
 
-const contractAddress = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0';
+const contractAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
 
 export default function WalletProvider(props: { children: ReactNode }) {
   const [wallet, setWallet] = useState<Wallet>();
@@ -65,16 +67,16 @@ export default function WalletProvider(props: { children: ReactNode }) {
     } else {
       const provider = new Web3Provider(window.ethereum);
       const signer = provider.getSigner();
-      const greeter = new Contract(
+      const messiahSystemFactory = new Contract(
         contractAddress,
-        GreeterInfo.abi,
+        abi.abi,
         signer
-      ) as Greeter;
+      ) as MessiahSystemFactory;
       setWallet({
         provider,
         signer,
         address: addresses[0],
-        contract: { greeter },
+        contract: { messiahSystemFactory },
       });
     }
   };
@@ -90,8 +92,17 @@ export default function WalletProvider(props: { children: ReactNode }) {
     window.ethereum.on('chainChanged', () => window.location.reload());
   }, [wallet]);
 
+  const checkMessiahExists = async(erc721Add:string)=>{
+    const res = await wallet?.contract.messiahSystemFactory.messiahSystemAddress(erc721Add);
+    return res;
+  }
+
+  const deployMessiahSystem = async(erc721Add:string, erc20Add:string)=>{
+    await wallet?.contract.messiahSystemFactory.deployMessiahSystem(erc721Add, erc20Add);
+  }
+
   return (
-    <WalletContext.Provider value={{ wallet, connectWallet }}>
+    <WalletContext.Provider value={{ wallet, connectWallet, checkMessiahExists, deployMessiahSystem }}>
       {props.children}
     </WalletContext.Provider>
   );
