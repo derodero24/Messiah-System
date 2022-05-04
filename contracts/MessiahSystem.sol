@@ -79,6 +79,10 @@ contract MessiahSystem {
     mapping(uint256 => Tally) public tallies;
     mapping(uint256 => mapping(address => Option)) public votes;
 
+    // Blacklist (運営アカウント)
+    address[] private _blacklist;
+    mapping(address => bool) public isBlacklisted;
+
     // Others
     mapping(address => bool) public hasClaimed; // サブトークンをclaim済みか
 
@@ -133,11 +137,27 @@ contract MessiahSystem {
         return uint256(keccak256(abi.encode(account)));
     }
 
-    function isBlacklisted(address account) public view returns (bool) {
-        // 資産ロック解除前はfalse
-        if (block.timestamp < deploymentTimestamp + FREEZING_PERIOD)
-            return false;
-        return _isAccepted(accountId(account));
+    function getBlacklist(uint256 page)
+        external
+        view
+        returns (address[] memory)
+    {
+        // 運営アカウント一覧
+        uint256 originalLength = _blacklist.length;
+        if (originalLength <= DATA_PER_PAGE * (page - 1)) {
+            return new address[](0);
+        }
+
+        uint256 returnLength = DATA_PER_PAGE;
+        if (originalLength < DATA_PER_PAGE * (page + 1)) {
+            returnLength = originalLength - DATA_PER_PAGE * (page - 1);
+        }
+
+        address[] memory returnArray = new address[](returnLength);
+        for (uint256 i = 0; i < returnLength; i++) {
+            returnArray[i] = _blacklist[DATA_PER_PAGE * (page - 1) + i];
+        }
+        return returnArray;
     }
 
     function getProposals(uint256 page)
@@ -231,6 +251,14 @@ contract MessiahSystem {
         beforeFreezing
     {
         _vote(accountId(account), option);
+        // ブラックリスト入り判定
+        if (!isBlacklisted[account]) {
+            uint256 id = accountId(account);
+            if (_isAccepted(id)) {
+                _blacklist.push(account);
+                isBlacklisted[account] = true;
+            }
+        }
     }
 
     function voteForProposal(uint256 proposalId, Option option)
@@ -274,7 +302,7 @@ contract MessiahSystem {
             subOriginalTokenAddress != address(0),
             "Sub token doesn't set yet"
         );
-        require(isBlacklisted(msg.sender) == false, "You are blacklisted");
+        require(isBlacklisted[msg.sender] == false, "You are blacklisted");
         require(hasClaimed[msg.sender] == false, "You've already claimed");
         uint256 amount = _fetchClaimableAmount(
             subOriginalTokenAddress,

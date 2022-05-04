@@ -112,6 +112,14 @@ describe('System', () => {
     expect(tally.totalAbstain).to.equal(1);
   });
 
+  it('Check blacklist', async () => {
+    expect(await system.isBlacklisted(signers[0].address)).to.equal(false);
+    expect(await system.isBlacklisted(signers[10].address)).to.equal(true);
+    const blacklist = await system.getBlacklist(1);
+    expect(blacklist.length).to.equal(1);
+    expect(blacklist[0]).to.equal(signers[10].address);
+  });
+
   it('Cannot claim messsiah token yet', async () => {
     // Should be error
     try {
