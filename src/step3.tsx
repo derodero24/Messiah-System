@@ -11,16 +11,18 @@ import {Send, AddPhotoAlternate, HowToVote, FollowTheSigns, Add, Person} from "@
 
 import DialogTitle from '@mui/material/DialogTitle';
 import Dialog from '@mui/material/Dialog';
+import { WalletContext } from './ethereum/WalletProvider';
+import { MessiahSystem} from '../typechain-types';
 
 
 
-function ProposalTable(props: { data: any[]; }) {
+function ProposalTable(props: { data: MessiahSystem.ProposalStruct[];}) {
     const [open, setOpen] = React.useState(false);
-    const [selectedValue, setSelectedValue] = React.useState("");
+    const [selectedValue, setSelectedValue] = React.useState({title:"", id:""});
   
-    const handleClickOpen = (value:string) => {
-      setSelectedValue(value);
-    
+    const handleClickOpen = (title:string, id:string) => {
+      setSelectedValue({title, id});
+  
       setOpen(true);
     };
   
@@ -35,20 +37,20 @@ function ProposalTable(props: { data: any[]; }) {
       <Table sx={{ minWidth: 650 }} aria-label="simple table">
         <TableHead>
           <TableRow>
-            <TableCell align="right">Proposal</TableCell>
+            <TableCell align="right">Title</TableCell>
             <TableCell align="right">Reward</TableCell>
-            <TableCell align="right">Entry</TableCell>
+            <TableCell align="right">Submit</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {props.data.map((row) => (
             <TableRow
-              key={row.proposal}
+              key={row.id.toString()}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
-              <TableCell align="right">{row.proposal}</TableCell>
-              <TableCell align="right">{row.reward}</TableCell>
-              <TableCell align="right"><Button onClick={()=>{handleClickOpen(row.proposal)}}><FollowTheSigns/></Button></TableCell>
+              <TableCell align="right">{row.title}</TableCell>
+              <TableCell align="right">{row.reward.toString()}</TableCell>
+              <TableCell align="right"><Button onClick={()=>{handleClickOpen(row.title, row.id.toString())}}><FollowTheSigns/></Button></TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -56,7 +58,8 @@ function ProposalTable(props: { data: any[]; }) {
     </TableContainer>
 
     <SimpleDialog
-    selectedValue={selectedValue}
+    title={selectedValue.title}
+    id={selectedValue.id}
     open={open}
     onClose={handleClose}
     /> 
@@ -65,7 +68,7 @@ function ProposalTable(props: { data: any[]; }) {
 }
 
 
-function CandidateTable(props: { data: any[]; }) {
+function CandidateTable(props: { data: MessiahSystem.SubmissionStruct[]; }) {
 
   return (
       <div>
@@ -73,21 +76,21 @@ function CandidateTable(props: { data: any[]; }) {
       <Table sx={{ minWidth: 650 }} aria-label="simple table">
         <TableHead>
           <TableRow>
-            <TableCell align="right">Wallet</TableCell>
+            <TableCell align="right">Submitter</TableCell>
             <TableCell align="right">Github</TableCell>
-            <TableCell align="right">Days</TableCell>
+            <TableCell align="right">Comment</TableCell>
             <TableCell align="right">Vote</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {props.data.map((row) => (
             <TableRow
-              key={row.wallet}
+              key={row.submitter}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
-              <TableCell align="right">{row.wallet}</TableCell>
-              <TableCell align="right">{row.github}</TableCell>
-              <TableCell align="right">{row.days}</TableCell>
+              <TableCell align="right">{row.submitter}</TableCell>
+              <TableCell align="right">{row.url}</TableCell>
+              <TableCell align="right">{row.comment}</TableCell>
               <TableCell align="right"><Button><HowToVote/></Button></TableCell>
             </TableRow>
           ))}
@@ -101,16 +104,26 @@ function CandidateTable(props: { data: any[]; }) {
 
 export interface SimpleDialogProps {
   open: boolean;
-  selectedValue: string;
+  title: string;
+  id:string;
   onClose: (value: string) => void;
 }
 
-function SimpleDialog(props: SimpleDialogProps) {
-  const { onClose, selectedValue, open } = props;
-  const [commitProps, setCommitProps] = React.useState<commitProfile>({github: "", times:""});
 
-  const wizardEntry = () => {
+type commitProfile = {
+  "github":string;
+  "comment" : string;
+}
+
+function SimpleDialog(props: SimpleDialogProps) {
+  const {submitProduct} = React.useContext(WalletContext);
+  const { onClose, title, id, open } = props;
+  const [commitProps, setCommitProps] = React.useState<commitProfile>({github: "", comment:""});
+
+  const submitGithubPressed = async(id:string) => {
+    const res = await submitProduct(id, commitProps.github, commitProps.comment);
   };
+
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       setCommitProps({
@@ -120,7 +133,7 @@ function SimpleDialog(props: SimpleDialogProps) {
   };
 
   const handleClose = () => {
-    onClose(selectedValue);
+    onClose(title);
   };
 
   const handleListItemClick = (value: string) => {
@@ -129,19 +142,16 @@ function SimpleDialog(props: SimpleDialogProps) {
 
   return (
     <Dialog onClose={handleClose} open={open}>
-      <DialogTitle>{selectedValue}</DialogTitle>
+      <DialogTitle>{title} {id}</DialogTitle>
       <Grid container justifyContent={"center"}>
-          <Grid item xs={12}>
-            <Typography variant="h3" gutterBottom>Entry</Typography>
-          </Grid>
           <Grid item xs={12}>
             <TextField
               type="text"
               name="github"
               value={commitProps.github}
               onChange={handleChange}
-              label="https://github/"
-              placeholder="https://github/"
+              label="https://github/repo"
+              placeholder="https://github/repo"
               fullWidth
               variant="outlined"
               required
@@ -150,18 +160,18 @@ function SimpleDialog(props: SimpleDialogProps) {
           <Grid item xs={12}>
             <TextField
               type="text"
-              name="times"
-              value={commitProps.times}
+              name="comment"
+              value={commitProps.comment}
               onChange={handleChange}
-              label="20 days"
-              placeholder="20 days"
+              label="comment"
+              placeholder="good point"
               fullWidth
               variant="outlined"
               required
             />
           </Grid>
           <Grid item xs={12}>
-            <Button variant="contained" onClick={wizardEntry} startIcon={<Send />} fullWidth type="button">Entry</Button>
+            <Button variant="contained" onClick={()=>{submitGithubPressed(id)}} startIcon={<Send />} fullWidth type="button">Submit</Button>
           </Grid>
         </Grid>
       
@@ -170,47 +180,62 @@ function SimpleDialog(props: SimpleDialogProps) {
 }
 
 
-type ProposalProfile = {
-    "proposal": string;
-    "reward": string;
-}
-
-const dummy_proposal = [
-    {"proposal":"hogehoge1", "reward":"2000 USDC"},
-    {"proposal":"hogehoge2", "reward":"100 USDC"},
-    {"proposal":"hogehoge5", "reward":"23000 USDC"}
-];
-
-const dummy_candidate = [
-  {"proposal":"hogehoge1",  "reward":"2000 USDC", "candidate":[{"wallet":"0x820852", "github":"github/noegn", "days":23}]},
-  {"proposal":"hogehoge2", "reward":"100 USDC", "candidate":[{"wallet":"0x820852", "github":"github/noegn", "days":14}, {"wallet":"0x432852", "github":"github/whrhr", "days":13}]},
-  {"proposal":"hogehoge5", "reward":"23000 USDC", "candidate":[]}
-];
-
-type commitProfile = {
-    "github":string;
-    "times" : string;
+type candidateProps={
+  "proposal":MessiahSystem.ProposalStruct;
+  "candidate":undefined | MessiahSystem.SubmissionStruct[];
 }
 
 
 function Step3(){
+  const {getProposals, getSubmission} = React.useContext(WalletContext);
+  const [proposalData, setProposalData] = React.useState<MessiahSystem.ProposalStruct[]>([]);
+  const [candidateData, setCandidateData] = React.useState<candidateProps[]>([]);
+  const [developingStateIds, setDevelopingStateIds] = React.useState([]);
+
+  React.useEffect(()=>{
+    loadProposalData();
+  },[]);
+
+  const loadProposalData = async()=>{
+    const data = await getProposals(1);
+    console.log(data);
+
+    if(!data){
+      return 0;
+    }
+
+    //filter developing state
+    //setDevelopingStateIds();
+
+    setProposalData(data);
+  }
+
+  const loadSubmissionData = async()=>{
+    const tmp:candidateProps[] = [];
+    proposalData.map(async(proposal)=>{
+      const submissionData = await getSubmission(proposal.id, 1);
+      tmp.push({proposal:proposal, candidate:submissionData});
+    })
+
+    setCandidateData(tmp);
+  }
 
     return(
       <div>
         <Grid container alignItems="center" justifyContent="center">
             <Box mt={5} mb={5}>
-                <Typography variant="h2" gutterBottom component="div">Proposal Entry</Typography>
+                <Typography variant="h2" gutterBottom component="div">Decided Proposal</Typography>
             </Box>
         </Grid>
-        <ProposalTable data={dummy_proposal}/>
+        <ProposalTable data={proposalData}/>
 
         <Box m={5}>
           <Typography variant="h3" gutterBottom>Candidate</Typography>
-          {dummy_candidate.map((row)=>{
+          {candidateData.map((row)=>{
             return(
-              <div key={row.proposal}>
+              <div key={row.proposal.id.toString()}>
                 <Box m={5}>
-                  <Typography variant="h5" gutterBottom>{row.proposal} {row.reward}</Typography>
+                  <Typography variant="h5" gutterBottom>{row.proposal.title} {row.proposal.reward.toString()}</Typography>
                   <CandidateTable data={row.candidate}/>
                 </Box>
               </div>

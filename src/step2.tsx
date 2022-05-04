@@ -10,7 +10,6 @@ import {Grid, TextField, MenuItem, Box, Button, Typography, Fab, Paper} from "@m
 import {Send, AddPhotoAlternate, HowToVote} from "@mui/icons-material";
 import { WalletContext } from './ethereum/WalletProvider';
 import { MessiahSystem} from '../typechain-types';
-import { BigNumberish } from "ethers";
 
 
 
@@ -47,27 +46,16 @@ function BasicTable(props: { data: any[]; }) {
 type ProposalProfile = {
     "title":string;
     "description": string;
-    "reward": number;
+    "reward": string;
 }
 
-type ProposalStruct = {
-  id: BigNumberish;
-  timestamp: BigNumberish;
-  proposer: string;
-  title: string;
-  description: string;
-  reward: BigNumberish;
-  state:BigNumberish;
-};
-
-
 function Step2(){
-    const {getProposal, submitProposal} = React.useContext(WalletContext);
-    const [proposal, setProposal] = React.useState<ProposalProfile>({title: "", description:"", reward:0});
+    const {getProposals, submitProposal} = React.useContext(WalletContext);
+    const [proposal, setProposal] = React.useState<ProposalProfile>({title: "", description:"", reward:""});
     const [proposalData, setProposalData] = React.useState<MessiahSystem.ProposalStruct[]>([]);
 
     const submitProposalPressed = async() => {
-      const res = await submitProposal(proposal.title, proposal.description, proposal.reward);
+      const res = await submitProposal(proposal.title, proposal.description, Number(proposal.reward));
     };
 
     React.useEffect(()=>{
@@ -75,7 +63,7 @@ function Step2(){
     },[]);
 
     const loadProposalData = async()=>{
-      const data = await getProposal(1);
+      const data = await getProposals(1);
       console.log(data);
 
       if(!data){

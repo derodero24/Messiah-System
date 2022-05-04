@@ -11,29 +11,36 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 import {Grid, TextField, MenuItem, Box, Button, Typography, Fab, Paper} from "@mui/material";
 import {Send, AddPhotoAlternate, HowToVote} from "@mui/icons-material";
+import { WalletContext } from './ethereum/WalletProvider';
 
+import { MessiahSystem} from '../typechain-types';
 
 
 function BasicTable(props: { data: any[]; }) {
+    const {claimReward}  = React.useContext(WalletContext);
+    const claimPressed = async(proposalId:string) =>{
+      const res = await claimReward(proposalId);
+    };
+
   return (
     <TableContainer component={Paper}>
       <Table sx={{ minWidth: 650 }} aria-label="simple table">
         <TableHead>
           <TableRow>
-            <TableCell align="right">Proposal</TableCell>
-            <TableCell align="right">Repository</TableCell>
-            <TableCell align="right">Vote</TableCell>
+            <TableCell align="right">title</TableCell>
+            <TableCell align="right">reward</TableCell>
+            <TableCell align="right">Claim</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {props.data.map((row) => (
             <TableRow
-              key={row.wallet}
+              key={Number(row.id)}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
-              <TableCell align="right">{row.proposal}</TableCell>
-              <TableCell align="right">{row.repository}</TableCell>
-              <TableCell align="right"><Button><HowToVote/></Button></TableCell>
+              <TableCell align="right">{row.title}</TableCell>
+              <TableCell align="right">{row.reward.toString()}</TableCell>
+              <TableCell align="right"><Button onClick={()=>claimPressed(row.id.toString())}>Claim Reward</Button></TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -42,94 +49,37 @@ function BasicTable(props: { data: any[]; }) {
   );
 }
 
-
-type ProposalProfile = {
-    "proposal": string;
-    "repo": string;
-}
-
-const dummy_proposal_dev = [
-    {"proposal":"hogehoge1", "repository":"github/hogehoge1"},
-    {"proposal":"hogehoge2", "repository":"github/hogehoge2"},
-    {"proposal":"hogehoge5", "repository":"github/hogehoge5"}
-];
-
 function Step4(){
-    const [proposal, setProposal] = React.useState<ProposalProfile>({proposal: "", repo:""});
+    const {getProposals}  = React.useContext(WalletContext);
 
-    const submitProposal = () => {
-    };
+    const [proposalData, setProposalData] = React.useState<MessiahSystem.ProposalStruct[]>([]);
 
-    const claimPressed = () =>{
+    React.useEffect(()=>{
+      loadProposalData();
+    },[]);
 
-    };
+    const loadProposalData = async()=>{
+      const data = await getProposals(1);
+      console.log(data);
 
+      if(!data){
+        return 0;
+      }
 
-    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setProposal({
-        ...proposal,
-        [event.target.name]: event.target.value,
-        });
-    };
+      // filter complete proposal
 
-    const handleChangeList = (event: SelectChangeEvent) => {
-        setProposal({
-            ...proposal,
-            [event.target.name]: event.target.value,
-            });
-      };
+      setProposalData(data);
+    }
 
     return(
         <div>
             <Grid container alignItems="center" justifyContent="center">
                 <Box mt={5} mb={5}>
-                    <Typography variant="h2" gutterBottom component="div">Reward Voting</Typography>
+                    <Typography variant="h2" gutterBottom component="div">Apple Eating</Typography>
                 </Box>
             </Grid>
             
-        <BasicTable data={dummy_proposal_dev}/>
-
-        <Grid container justifyContent={"center"}>
-          <Grid item xs={12}>
-            <Typography variant="h3" gutterBottom>Done</Typography>
-          </Grid>
-          <Box sx={{ minWidth: 120 }}>
-      <FormControl fullWidth>
-        <InputLabel id="demo-simple-select-label">Proposal</InputLabel>
-        <Select
-          labelId="demo-simple-select-label"
-          id="demo-simple-select"
-          value={proposal.proposal}
-          label="proposal"
-          name="proposal"
-          onChange={handleChangeList}
-        >
-          <MenuItem value={"hogehoge1"}>hogehoge1</MenuItem>
-          <MenuItem value={"hogehoge3"}>hogehoge3</MenuItem>
-          <MenuItem value={"hogehoge4"}>hogehoge4</MenuItem>
-        </Select>
-      </FormControl>
-    </Box>
-          <Grid item xs={12}>
-            <TextField
-              type="text"
-              name="repo"
-              value={proposal.repo}
-              onChange={handleChange}
-              label="github/repo"
-              placeholder="github/repo"
-              fullWidth
-              variant="outlined"
-              required
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <Button variant="contained" onClick={submitProposal} startIcon={<Send />} fullWidth type="button">Done the mission</Button>
-          </Grid>
-        </Grid>
-
-        <Button onClick={claimPressed}>Claim Reward</Button>
-
+        <BasicTable data={proposalData}/>
       </div>
     )
 }

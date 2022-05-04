@@ -47,7 +47,7 @@ export const WalletContext = createContext({
     _reward: number
   ) => {},
   // Submit
-  submit: async (
+  submitProduct: async (
     _proposalId: BigNumberish,
     _url: string,
     _comment: string
@@ -215,7 +215,7 @@ export default function WalletProvider(props: { children: ReactNode }) {
   };
 
   /* ########## Submit ########## */
-  const submit = async (
+  const submitProduct = async (
     proposalId: BigNumberish,
     url: string,
     comment: string
@@ -287,7 +287,7 @@ export default function WalletProvider(props: { children: ReactNode }) {
         getProposals,
         getSubmissions,
         submitProposal,
-        submit,
+        submitProduct,
         voteForBlacklist,
         voteForProposal,
         voteForSubmission,
