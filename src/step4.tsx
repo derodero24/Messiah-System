@@ -50,7 +50,8 @@ function BasicTable(props: { data: any[]; }) {
 }
 
 function Step4(){
-    const {getProposals}  = React.useContext(WalletContext);
+    const {getProposals, getTally, getSubmissions}  = React.useContext(WalletContext);
+    const [appleEatData, setAppleEatData] = React.useState([]);
 
     const [proposalData, setProposalData] = React.useState<MessiahSystem.ProposalStruct[]>([]);
 
@@ -66,9 +67,23 @@ function Step4(){
         return 0;
       }
 
-      // filter complete proposal
+      const tmp = [];
 
-      setProposalData(data);
+      data.map(async(x)=>{
+        const submissions = await getSubmissions(x.id, 1);
+        let winner="";
+        let winnerFor = 0;
+        submissions.map(async(candidate)=>{
+          const res = await getTally(candidate.id);
+          if(Number(res?.totalFor) >= winnerFor){
+            winner = candidate.submitter;
+            winnerFor = Number(res?.totalFor);
+          }
+        tmp.push({"proposal":x.id, "reward":x.reward.toString(), "appleEater":winner});
+        })
+      });
+
+      setAppleEatData(tmp);
     }
 
     return(
@@ -79,7 +94,7 @@ function Step4(){
                 </Box>
             </Grid>
             
-        <BasicTable data={proposalData}/>
+        <BasicTable data={appleEatData}/>
       </div>
     )
 }

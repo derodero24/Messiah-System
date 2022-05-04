@@ -10,10 +10,13 @@ import {Grid, TextField, MenuItem, Box, Button, Typography, Fab, Paper} from "@m
 import {Send, AddPhotoAlternate, HowToVote} from "@mui/icons-material";
 import { WalletContext } from './ethereum/WalletProvider';
 import { MessiahSystem} from '../typechain-types';
+import {Option} from "./ethereum/contractVariables";
 
 
 
 function BasicTable(props: { data: any[]; }) {
+  const {voteForProposal} = React.useContext(WalletContext);
+
   return (
     <TableContainer component={Paper}>
       <Table sx={{ minWidth: 650 }} aria-label="simple table">
@@ -27,13 +30,13 @@ function BasicTable(props: { data: any[]; }) {
         <TableBody>
           {props.data.map((row) => (
             <TableRow
-              key={Number(row.id)}
+              key={row.id.toString()}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
               <TableCell align="right">{row.title}</TableCell>
               <TableCell align="right">{row.description}</TableCell>
-              <TableCell align="right">{Number(row.reward)}</TableCell>
-              <TableCell align="right"><Button><HowToVote/></Button></TableCell>
+              <TableCell align="right">{row.reward.toString()}</TableCell>
+              <TableCell align="right"><Button onClick={async()=>{voteForProposal(row.id, Option.FOR)}}><HowToVote/></Button></TableCell>
             </TableRow>
           ))}
         </TableBody>

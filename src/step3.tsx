@@ -13,7 +13,8 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Dialog from '@mui/material/Dialog';
 import { WalletContext } from './ethereum/WalletProvider';
 import { MessiahSystem} from '../typechain-types';
-
+import {ProposalState} from "./ethereum/contractVariables";
+import {Option} from "./ethereum/contractVariables";
 
 
 function ProposalTable(props: { data: MessiahSystem.ProposalStruct[];}) {
@@ -69,6 +70,8 @@ function ProposalTable(props: { data: MessiahSystem.ProposalStruct[];}) {
 
 
 function CandidateTable(props: { data: MessiahSystem.SubmissionStruct[]; }) {
+  const {voteForProposal} = React.useContext(WalletContext);
+
 
   return (
       <div>
@@ -91,7 +94,7 @@ function CandidateTable(props: { data: MessiahSystem.SubmissionStruct[]; }) {
               <TableCell align="right">{row.submitter}</TableCell>
               <TableCell align="right">{row.url}</TableCell>
               <TableCell align="right">{row.comment}</TableCell>
-              <TableCell align="right"><Button><HowToVote/></Button></TableCell>
+              <TableCell align="right"><Button onClick={async()=>{voteForProposal(row.id, Option.FOR)}}><HowToVote/></Button></TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -187,7 +190,7 @@ type candidateProps={
 
 
 function Step3(){
-  const {getProposals, getSubmission} = React.useContext(WalletContext);
+  const {getProposals, getSubmissions} = React.useContext(WalletContext);
   const [proposalData, setProposalData] = React.useState<MessiahSystem.ProposalStruct[]>([]);
   const [candidateData, setCandidateData] = React.useState<candidateProps[]>([]);
   const [developingStateIds, setDevelopingStateIds] = React.useState([]);
@@ -207,13 +210,15 @@ function Step3(){
     //filter developing state
     //setDevelopingStateIds();
 
-    setProposalData(data);
+    const developingData = data.filter(x=>x.state===ProposalState.DEVELOPING);
+
+    setProposalData(developingData);
   }
 
   const loadSubmissionData = async()=>{
     const tmp:candidateProps[] = [];
     proposalData.map(async(proposal)=>{
-      const submissionData = await getSubmission(proposal.id, 1);
+      const submissionData = await getSubmissions(proposal.id, 1);
       tmp.push({proposal:proposal, candidate:submissionData});
     })
 
