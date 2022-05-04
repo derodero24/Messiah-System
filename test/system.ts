@@ -196,4 +196,31 @@ describe('System', () => {
     expect(submissions[0].workerAddress).to.equal(submission.workerAddress);
     expect(submissions[0].comment).to.equal(submission.comment);
   });
+
+  it('Cancel the proposal', async () => {
+    await system.cancelProposal(proposal.id);
+    proposal = await system.proposals(proposal.id);
+    expect(proposal.canceled).to.equal(true);
+  });
+
+  it('Cannot enter/submit/vote to the canceled proposal', async () => {
+    // Should be error
+    try {
+      await system
+        .connect(signers[1])
+        .enterProposal(proposal.id, 'Second proposer', 'https://...');
+      assert.fail();
+    } catch (e) {
+      if (e instanceof AssertionError) assert.fail();
+    }
+
+    try {
+      await system
+        .connect(signers[0])
+        .submitProduct(proposal.id, 'New submission');
+      assert.fail();
+    } catch (e) {
+      if (e instanceof AssertionError) assert.fail();
+    }
+  });
 });

@@ -189,8 +189,11 @@ contract MessiahSystem {
         _propose(msg.sender, title, description, reward);
     }
 
-    function cancelProposal(uint256 proposalId) external {
-        // proposalの破棄
+    function cancelProposal(uint256 proposalId)
+        external
+        onlyForValidProposal(proposalId)
+    {
+        proposals[proposalId].canceled = true;
     }
 
     function enterProposal(
@@ -207,7 +210,10 @@ contract MessiahSystem {
         workers[proposalId][msg.sender] = Worker(msg.sender, name, url);
     }
 
-    function submitProduct(uint256 proposalId, string memory comment) external {
+    function submitProduct(uint256 proposalId, string memory comment)
+        external
+        onlyForValidProposal(proposalId)
+    {
         // 提出
         require(
             workers[proposalId][msg.sender].addr != address(0),
