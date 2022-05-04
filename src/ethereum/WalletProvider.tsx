@@ -67,6 +67,9 @@ export const WalletContext = createContext({
     undefined as undefined | number,
   hasClaimed: async () => undefined as undefined | boolean,
   isBlacklisted: async (_account: string) => undefined as undefined | boolean,
+  // Test
+  endFreezing: async () => {},
+  endVoting: async (_proposalId: BigNumberish) => {},
 });
 
 export default function WalletProvider(props: { children: ReactNode }) {
@@ -281,6 +284,17 @@ export default function WalletProvider(props: { children: ReactNode }) {
     return wallet?.contract.messiahSystem?.isBlacklisted(account);
   };
 
+  /* ########## Test ########## */
+  const endFreezing = async () => {
+    // Blacklist入りしているアドレスか
+    await wallet?.contract.messiahSystem?.endFreezing();
+  };
+
+  const endVoting = async (proposalId: BigNumberish) => {
+    // Blacklist入りしているアドレスか
+    await wallet?.contract.messiahSystem?.endVoting(proposalId);
+  };
+
   return (
     <WalletContext.Provider
       value={{
@@ -304,6 +318,8 @@ export default function WalletProvider(props: { children: ReactNode }) {
         checkOwnVote,
         hasClaimed,
         isBlacklisted,
+        endFreezing,
+        endVoting,
       }}
     >
       {props.children}
