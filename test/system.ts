@@ -104,7 +104,7 @@ describe('System', () => {
 
   it('Propose something', async () => {
     const receipt = await (
-      await system.propose('title', 'Some proposal', 100)
+      await system.connect(signers[0]).propose('title', 'Some proposal', 100)
     ).wait();
     const proposalId = receipt.events?.[0].args?.proposalId;
     expect(proposalId.toString()).to.not.equal('0');
@@ -135,10 +135,14 @@ describe('System', () => {
   });
 
   it('Submit product', async () => {
-    await system
-      .connect(signers[0])
-      .submit(proposal.id, 'https://...', 'brabrabra...');
-    submission = await system.submissions(proposal.id, signers[0].address);
+    const receipt = await (
+      await system
+        .connect(signers[0])
+        .submit(proposal.id, 'https://...', 'brabrabra...')
+    ).wait();
+    const submissionId = receipt.events?.[0].args?.submissionId;
+    submission = await system.submissions(submissionId);
+    expect(submission.id).to.equal(submissionId);
     expect(submission.proposalId).to.equal(proposal.id);
     expect(submission.submitter).to.equal(signers[0].address);
     expect(submission.url).to.equal('https://...');
@@ -160,8 +164,18 @@ describe('System', () => {
     expect(submissions[0].comment).to.equal(submission.comment);
   });
 
+  it('Cannnot cancel the proposal by unproposer', async () => {
+    // Should be error
+    try {
+      await system.connect(signers[1]).cancelProposal(proposal.id);
+      assert.fail();
+    } catch (e) {
+      if (e instanceof AssertionError) assert.fail();
+    }
+  });
+
   it('Cancel the proposal', async () => {
-    await system.cancelProposal(proposal.id);
+    await system.connect(signers[0]).cancelProposal(proposal.id);
     proposal = await system.proposals(proposal.id);
     expect(proposal.state).to.equal(4);
   });

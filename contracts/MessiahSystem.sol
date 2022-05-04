@@ -9,7 +9,7 @@ contract MessiahSystem {
     /* ########## Event ########## */
     event Propose(address indexed proposer, uint256 proposalId);
     event Submit(address indexed submitter, uint256 submissionId);
-    event Vote(address indexed voter, Option option);
+    event Vote(address indexed voter, uint256 targetId, Option option);
 
     /* ########## Enum ########## */
     enum ProposalState {
@@ -70,9 +70,9 @@ contract MessiahSystem {
     uint256[] private _proposalIds;
     mapping(uint256 => Proposal) public proposals;
 
-    // Submission (proposal ID -> submitter address -> info)
-    mapping(uint256 => address[]) private _submitters;
-    mapping(uint256 => mapping(address => Submission)) public submissions;
+    // Submission (proposal ID -> submissin ID -> info)
+    mapping(uint256 => uint256[]) private _submissionIds;
+    mapping(uint256 => Submission) public submissions;
 
     // Vote (proposal/submission ID -> info)
     mapping(uint256 => Tally) public tallies;
@@ -154,7 +154,7 @@ contract MessiahSystem {
         returns (Submission[] memory)
     {
         // 提出一覧
-        uint256 originalLength = _submitters[proposalId].length;
+        uint256 originalLength = _submissionIds[proposalId].length;
         if (originalLength <= DATA_PER_PAGE * (page - 1)) {
             return new Submission[](0);
         }
@@ -166,8 +166,8 @@ contract MessiahSystem {
 
         Submission[] memory returnArray = new Submission[](returnLength);
         for (uint256 i = 0; i < returnLength; i++) {
-            returnArray[i] = submissions[proposalId][
-                _submitters[proposalId][DATA_PER_PAGE * (page - 1) + i]
+            returnArray[i] = submissions[
+                _submissionIds[proposalId][DATA_PER_PAGE * (page - 1) + i]
             ];
         }
         return returnArray;
@@ -187,6 +187,10 @@ contract MessiahSystem {
         external
         onlyForActiveProposal(proposalId)
     {
+        require(
+            proposals[proposalId].proposer == msg.sender,
+            "This operation can be excuted by only proposer."
+        );
         proposals[proposalId].state = ProposalState.CANCELED;
     }
 
@@ -196,25 +200,33 @@ contract MessiahSystem {
         string memory comment
     ) external onlyForActiveProposal(proposalId) {
         // 提出
-        _submitters[proposalId].push(msg.sender);
         uint256 id = uint256(keccak256(abi.encode(proposalId, msg.sender)));
-        submissions[proposalId][msg.sender] = Submission(
-            id,
-            proposalId,
-            msg.sender,
-            url,
-            comment
-        );
+        _submissionIds[proposalId].push(id);
+        submissions[id] = Submission(id, proposalId, msg.sender, url, comment);
         emit Submit(msg.sender, id);
     }
 
-    // function vote(uint256 targetId, Option option) external {
-    //     // 投票
-    //     // require();
-    //     // TODO: 提案の採択, 報酬の支払い, 両方に対応
-    //     // proposals[proposalId].totalVotes++;
-    //     emit Vote(msg.sender, option);
-    // }
+    function vote(uint256 targetId, Option option) external {
+        // 投票 (提案の採択, 報酬の支払い, 両方に対応)
+        require(
+            proposals[targetId].id != 0 || submissions[targetId].id != 0,
+            "Invalid target ID."
+        );
+
+        // Reset tally
+        Option lastOption = votes[targetId][msg.sender];
+        if (lastOption == Option.FOR) tallies[targetId].totalFor--;
+        else if (lastOption == Option.AGAINST) tallies[targetId].totalAgainst--;
+        else if (lastOption == Option.ABSTAIN) tallies[targetId].totalAbstain--;
+
+        // Update tally
+        votes[targetId][msg.sender] = option;
+        if (option == Option.FOR) tallies[targetId].totalFor++;
+        else if (option == Option.AGAINST) tallies[targetId].totalAgainst++;
+        else if (option == Option.ABSTAIN) tallies[targetId].totalAbstain++;
+
+        emit Vote(msg.sender, targetId, option);
+    }
 
     function claimReward(uint256 proposalId) external {
         // 報酬をclaim
