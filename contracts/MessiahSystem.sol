@@ -10,6 +10,12 @@ contract MessiahSystem {
     event Propose(address indexed proposer, uint256 proposalId);
 
     /* ########## Enum/Struct ########## */
+    enum VOTE {
+        FOR,
+        AGAINST,
+        ABSTAIN
+    }
+
     struct Proposal {
         uint256 id;
         uint256 timestamp;
@@ -20,16 +26,18 @@ contract MessiahSystem {
         bool canceled;
     }
 
-    struct Worker {
-        address addr;
-        string name;
-        string url;
-    }
-
     struct Submission {
         uint256 proposalId;
-        address workerAddress;
+        address submitter;
+        string url;
         string comment;
+    }
+
+    struct VoteInfo {
+        uint256 proposalId;
+        uint256 totalFor; // 賛成
+        uint256 totalAgainst; // 反対
+        uint256 totalAbstain; // 棄権
     }
 
     /* ########## Variable ########## */
@@ -49,16 +57,12 @@ contract MessiahSystem {
     uint256[] private _proposalIds;
     mapping(uint256 => Proposal) public proposals;
 
-    // Worker (proposal ID -> worker address -> info)
-    mapping(uint256 => address[]) private _workerAddresses;
-    mapping(uint256 => mapping(address => Worker)) public workers;
+    // Submission (proposal ID -> submitter address -> info)
+    mapping(uint256 => address[]) private _submitters;
+    mapping(uint256 => mapping(address => Submission)) public submissions;
 
     // Vote (proposal ID -> voter address -> info)
     // mapping(uint256 => mapping(address => Worker)) public VoteMap;
-
-    // Submission (proposal ID -> worker address -> info)
-    mapping(uint256 => address[]) private _submitters;
-    mapping(uint256 => mapping(address => Submission)) public submissions;
 
     // Others
     address[] public blacklist; // 運営アカウント
@@ -129,31 +133,6 @@ contract MessiahSystem {
         return returnArray;
     }
 
-    function getWorkers(uint256 proposalId, uint256 page)
-        external
-        view
-        returns (Worker[] memory)
-    {
-        // 立候補者一覧
-        uint256 originalLength = _workerAddresses[proposalId].length;
-        if (originalLength <= DATA_PER_PAGE * (page - 1)) {
-            return new Worker[](0);
-        }
-
-        uint256 returnLength = DATA_PER_PAGE;
-        if (originalLength < DATA_PER_PAGE * (page + 1)) {
-            returnLength = originalLength - DATA_PER_PAGE * (page - 1);
-        }
-
-        Worker[] memory returnArray = new Worker[](returnLength);
-        for (uint256 i = 0; i < returnLength; i++) {
-            returnArray[i] = workers[proposalId][
-                _workerAddresses[proposalId][DATA_PER_PAGE * (page - 1) + i]
-            ];
-        }
-        return returnArray;
-    }
-
     function getSubmissions(uint256 proposalId, uint256 page)
         external
         view
@@ -196,50 +175,30 @@ contract MessiahSystem {
         proposals[proposalId].canceled = true;
     }
 
-    function enterProposal(
+    function submitProduct(
         uint256 proposalId,
-        string memory name,
-        string memory url
+        string memory url,
+        string memory comment
     ) external onlyForValidProposal(proposalId) {
-        // 立候補
-        require(
-            workers[proposalId][msg.sender].addr == address(0),
-            "You've already entered."
-        );
-        _workerAddresses[proposalId].push(msg.sender);
-        workers[proposalId][msg.sender] = Worker(msg.sender, name, url);
-    }
-
-    function submitProduct(uint256 proposalId, string memory comment)
-        external
-        onlyForValidProposal(proposalId)
-    {
         // 提出
-        require(
-            workers[proposalId][msg.sender].addr != address(0),
-            "You must enter the proposal before submit."
-        );
         _submitters[proposalId].push(msg.sender);
         submissions[proposalId][msg.sender] = Submission(
             proposalId,
             msg.sender,
+            url,
             comment
         );
     }
 
-    function vote(uint256 proposalId, address worker)
-        external
-        onlyForValidProposal(proposalId)
-    {
-        // 投票
-        require(
-            workers[proposalId][worker].addr != address(0),
-            "Invalid worker address."
-        );
-        // require();
-        // TODO: 提案の採択, 報酬の支払い, 両方に対応
-        // proposals[proposalId].totalVotes++;
-    }
+    // function vote(uint256 proposalId, address worker)
+    //     external
+    //     onlyForValidProposal(proposalId)
+    // {
+    //     // 投票
+    //     // require();
+    //     // TODO: 提案の採択, 報酬の支払い, 両方に対応
+    //     // proposals[proposalId].totalVotes++;
+    // }
 
     function claimReward(uint256 proposalId) external {
         // 報酬をclaim

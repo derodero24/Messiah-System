@@ -21,7 +21,6 @@ describe('System', () => {
   let factory: MessiahSystemFactory;
   let system: MessiahSystem;
   let proposal: MessiahSystem.ProposalStruct;
-  let worker: MessiahSystem.WorkerStruct;
   let submission: MessiahSystem.SubmissionStruct;
 
   before(async () => {
@@ -134,52 +133,14 @@ describe('System', () => {
     expect(proposals[0].canceled).to.equal(proposal.canceled);
   });
 
-  it('No worker yet', async () => {
-    const workers = await system.getWorkers(proposal.id, 1);
-    expect(workers.length).to.equal(0);
-  });
-
-  it('Enter the proposal', async () => {
+  it('Submit product', async () => {
     await system
       .connect(signers[0])
-      .enterProposal(proposal.id, 'First proposer', 'https://...');
-    worker = await system.workers(proposal.id, signers[0].address);
-    expect(worker.addr).to.equal(signers[0].address);
-    expect(worker.name).to.equal('First proposer');
-    expect(worker.url).to.equal('https://...');
-  });
-
-  it('Cannot enter the same proposal again', async () => {
-    // Should be error
-    try {
-      await system
-        .connect(signers[0])
-        .enterProposal(proposal.id, 'Same proposer', 'http://...');
-      assert.fail();
-    } catch (e) {
-      if (e instanceof AssertionError) assert.fail();
-    }
-  });
-
-  it('Get all workers', async () => {
-    let workers: MessiahSystem.WorkerStructOutput[] = [];
-    let next, page;
-    while (next === undefined || next.length !== 0) {
-      next = await system.getWorkers(proposal.id, page || 1);
-      workers = workers.concat(next);
-      page = (page || 1) + 1;
-    }
-    expect(workers.length).to.equal(1);
-    expect(workers[0].addr).to.equal(signers[0].address);
-    expect(workers[0].name).to.equal('First proposer');
-    expect(workers[0].url).to.equal('https://...');
-  });
-
-  it('Submit product', async () => {
-    await system.connect(signers[0]).submitProduct(proposal.id, 'brabrabra...');
+      .submitProduct(proposal.id, 'https://...', 'brabrabra...');
     submission = await system.submissions(proposal.id, signers[0].address);
     expect(submission.proposalId).to.equal(proposal.id);
-    expect(submission.workerAddress).to.equal(signers[0].address);
+    expect(submission.submitter).to.equal(signers[0].address);
+    expect(submission.url).to.equal('https://...');
     expect(submission.comment).to.equal('brabrabra...');
   });
 
@@ -193,7 +154,8 @@ describe('System', () => {
     }
     expect(submissions.length).to.equal(1);
     expect(submissions[0].proposalId).to.equal(submission.proposalId);
-    expect(submissions[0].workerAddress).to.equal(submission.workerAddress);
+    expect(submissions[0].submitter).to.equal(submission.submitter);
+    expect(submissions[0].url).to.equal(submission.url);
     expect(submissions[0].comment).to.equal(submission.comment);
   });
 
@@ -203,21 +165,12 @@ describe('System', () => {
     expect(proposal.canceled).to.equal(true);
   });
 
-  it('Cannot enter/submit/vote to the canceled proposal', async () => {
+  it('Cannot submit/vote to the canceled proposal', async () => {
     // Should be error
     try {
       await system
-        .connect(signers[1])
-        .enterProposal(proposal.id, 'Second proposer', 'https://...');
-      assert.fail();
-    } catch (e) {
-      if (e instanceof AssertionError) assert.fail();
-    }
-
-    try {
-      await system
         .connect(signers[0])
-        .submitProduct(proposal.id, 'New submission');
+        .submitProduct(proposal.id, 'https://...', 'New submission');
       assert.fail();
     } catch (e) {
       if (e instanceof AssertionError) assert.fail();
