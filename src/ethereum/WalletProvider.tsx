@@ -34,6 +34,7 @@ export const WalletContext = createContext({
   checkMessiahExists: async (_erc721Add: string) => '' as undefined | string,
   deployMessiahSystem: async (_erc721Addr: string, _erc20Addr: string) => {},
   updateContract: async (_addr: string) => {},
+  updateProposalState: async () => {},
   // Getter
   getBlacklist: async (_page: number) => [] as string[],
   getProposals: async (_page: number) =>
@@ -187,81 +188,101 @@ export default function WalletProvider(props: { children: ReactNode }) {
     });
   };
 
+  const updateProposalState = useCallback(async () => {
+    await wallet?.contract.messiahSystem?.updateProposalState();
+  }, [wallet?.contract.messiahSystem]);
+
   /* ########## Getter ########## */
-  const getBlacklist = async (page: number) => {
-    if (!wallet?.contract.messiahSystem) return [];
-    return wallet.contract.messiahSystem.getBlacklist(page);
-  };
+  const getBlacklist = useCallback(
+    async (page: number) => {
+      if (!wallet?.contract.messiahSystem) return [];
+      return wallet.contract.messiahSystem.getBlacklist(page);
+    },
+    [wallet?.contract.messiahSystem]
+  );
 
-  const getProposals = async (page: number) => {
-    if (!wallet?.contract.messiahSystem) return [];
-    return wallet.contract.messiahSystem.getProposals(page);
-  };
+  const getProposals = useCallback(
+    async (page: number) => {
+      if (!wallet?.contract.messiahSystem) return [];
+      return wallet.contract.messiahSystem.getProposals(page);
+    },
+    [wallet?.contract.messiahSystem]
+  );
 
-  const getSubmissions = async (proposalId: BigNumberish, page: number) => {
-    if (!wallet?.contract.messiahSystem) return [];
-    return wallet.contract.messiahSystem.getSubmissions(proposalId, page);
-  };
+  const getSubmissions = useCallback(
+    async (proposalId: BigNumberish, page: number) => {
+      if (!wallet?.contract.messiahSystem) return [];
+      return wallet.contract.messiahSystem.getSubmissions(proposalId, page);
+    },
+    [wallet?.contract.messiahSystem]
+  );
 
-  const getTally = async (targetId: BigNumberish) => {
-    return wallet?.contract.messiahSystem?.tallies(targetId).then(
-      res =>
-        ({
-          totalFor: res.totalFor,
-          totalAgainst: res.totalAgainst,
-          totalAbstain: res.totalAbstain,
-        } as Tally)
-    );
-  };
+  const getTally = useCallback(
+    async (targetId: BigNumberish) => {
+      return wallet?.contract.messiahSystem?.tallies(targetId).then(
+        res =>
+          ({
+            totalFor: res.totalFor,
+            totalAgainst: res.totalAgainst,
+            totalAbstain: res.totalAbstain,
+          } as Tally)
+      );
+    },
+    [wallet?.contract.messiahSystem]
+  );
 
   /* ########## Propose ########## */
-  const submitProposal = async (
-    title: string,
-    description: string,
-    reward: number
-  ) => {
-    await wallet?.contract.messiahSystem?.propose(title, description, reward);
-  };
+  const submitProposal = useCallback(
+    async (title: string, description: string, reward: number) => {
+      await wallet?.contract.messiahSystem?.propose(title, description, reward);
+    },
+    [wallet?.contract.messiahSystem]
+  );
 
   /* ########## Submit ########## */
-  const submitProduct = async (
-    proposalId: BigNumberish,
-    url: string,
-    comment: string
-  ) => {
-    await wallet?.contract.messiahSystem?.submit(proposalId, url, comment);
-  };
+  const submitProduct = useCallback(
+    async (proposalId: BigNumberish, url: string, comment: string) => {
+      await wallet?.contract.messiahSystem?.submit(proposalId, url, comment);
+    },
+    [wallet?.contract.messiahSystem]
+  );
 
   /* ########## Vote ########## */
-  const voteForBlacklist = async (account: string, option: BigNumberish) => {
-    await wallet?.contract.messiahSystem?.voteForBlacklist(account, option);
-  };
+  const voteForBlacklist = useCallback(
+    async (account: string, option: BigNumberish) => {
+      await wallet?.contract.messiahSystem?.voteForBlacklist(account, option);
+    },
+    [wallet?.contract.messiahSystem]
+  );
 
-  const voteForProposal = async (
-    proposalId: BigNumberish,
-    option: BigNumberish
-  ) => {
-    await wallet?.contract.messiahSystem?.voteForProposal(proposalId, option);
-  };
+  const voteForProposal = useCallback(
+    async (proposalId: BigNumberish, option: BigNumberish) => {
+      await wallet?.contract.messiahSystem?.voteForProposal(proposalId, option);
+    },
+    [wallet?.contract.messiahSystem]
+  );
 
-  const voteForSubmission = async (
-    submissionId: BigNumberish,
-    option: BigNumberish
-  ) => {
-    await wallet?.contract.messiahSystem?.voteForSubmission(
-      submissionId,
-      option
-    );
-  };
+  const voteForSubmission = useCallback(
+    async (submissionId: BigNumberish, option: BigNumberish) => {
+      await wallet?.contract.messiahSystem?.voteForSubmission(
+        submissionId,
+        option
+      );
+    },
+    [wallet?.contract.messiahSystem]
+  );
 
   /* ########## Claim ########## */
-  const claimMessiahToken = async () => {
+  const claimMessiahToken = useCallback(async () => {
     await wallet?.contract.messiahSystem?.claimMessiahToken();
-  };
+  }, [wallet?.contract.messiahSystem]);
 
-  const claimReward = async (proposalId: BigNumberish) => {
-    await wallet?.contract.messiahSystem?.claimReward(proposalId);
-  };
+  const claimReward = useCallback(
+    async (proposalId: BigNumberish) => {
+      await wallet?.contract.messiahSystem?.claimReward(proposalId);
+    },
+    [wallet?.contract.messiahSystem]
+  );
 
   /* ########## Others ########## */
 
@@ -303,6 +324,7 @@ export default function WalletProvider(props: { children: ReactNode }) {
         checkMessiahExists,
         deployMessiahSystem,
         updateContract,
+        updateProposalState,
         getBlacklist,
         getProposals,
         getSubmissions,

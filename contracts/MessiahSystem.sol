@@ -211,6 +211,12 @@ contract MessiahSystem {
     }
 
     /* ########## not Pure/View External Functions ########## */
+    function updateProposalState() external {
+        for (uint256 i = 0; i < _proposalIds.length; i++) {
+            _updateProposalState(_proposalIds[i]);
+        }
+    }
+
     function propose(
         string memory title,
         string memory description,
@@ -473,5 +479,6 @@ contract MessiahSystem {
     function endVoting(uint256 proposalId) external {
         // 資産ロック期間終了
         proposals[proposalId].timestamp -= VOTING_PERIOD;
+        _updateProposalState(proposalId);
     }
 }
