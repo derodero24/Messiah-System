@@ -57,8 +57,8 @@ contract MessiahSystem {
     /* ########## Variable ########## */
 
     // constant
-    uint256 public constant FREEZING_PERIOD = 5 seconds; // TODO: 1 weeks;
-    uint256 public constant VOTING_PERIOD = 10 seconds; // TODO: 1 weeks;
+    uint256 public constant FREEZING_PERIOD = 1 weeks; // TODO: 1 weeks;
+    uint256 public constant VOTING_PERIOD = 1 weeks; // TODO: 1 weeks;
     uint256 public constant DATA_PER_PAGE = 100;
 
     // info

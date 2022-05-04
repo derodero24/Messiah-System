@@ -23,6 +23,7 @@ import {
   Typography,
 } from '@mui/material';
 
+import { Option, WalletContext } from './ethereum/WalletProvider';
 import GET_TRANSFERS from './graphql/subgraph';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -76,7 +77,11 @@ function BasicTable(props: {
 const dummy_symbol = 'MSH';
 
 const dummy_balance = [
-  { wallet: '0x79275925802', balance: 2142, ratio: 70.0 },
+  {
+    wallet: '0xE3D094a5C68732C9E5D6574AC4071dC0d8bE151E',
+    balance: 2142,
+    ratio: 70.0,
+  },
   { wallet: '0x42275925858', balance: 212, ratio: 9.5 },
   { wallet: '0x54275925803', balance: 42, ratio: 4.0 },
   { wallet: '0x89275925835', balance: 22, ratio: 2.8 },
@@ -172,6 +177,7 @@ function TokenBalanceGraph() {
 function Step1() {
   const [data, setData] = React.useState([{}]);
   const [blacklist, setBlacklist] = React.useState<string[]>([]);
+  const { voteForBlacklist } = React.useContext(WalletContext);
 
   const claimPressed = () => {};
 
@@ -180,9 +186,11 @@ function Step1() {
   };
 
   const vote = (address: string) => {
-    const tmp = blacklist;
-    tmp.push(address);
-    setBlacklist(tmp);
+    // const tmp = blacklist;
+    // tmp.push(address);
+    // setBlacklist(tmp);
+    console.log(address);
+    voteForBlacklist(address, Option.FOR);
   };
 
   React.useEffect(() => {
