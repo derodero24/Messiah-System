@@ -108,11 +108,12 @@ describe('System', () => {
     ).wait();
     const proposalId = receipt.events?.[0].args?.proposalId;
     expect(proposalId.toString()).to.not.equal('0');
-
     proposal = await system.proposals(proposalId);
     expect(proposal.proposer).to.equal(signers[0].address);
     expect(proposal.title).to.equal('title');
     expect(proposal.description).to.equal('Some proposal');
+    expect(proposal.reward).to.equal(100);
+    expect(proposal.state).to.equal(0);
   });
 
   it('Get all proposals', async () => {
@@ -130,13 +131,13 @@ describe('System', () => {
     expect(proposals[0].title).to.equal(proposal.title);
     expect(proposals[0].description).to.equal(proposal.description);
     expect(proposals[0].reward).to.equal(proposal.reward);
-    expect(proposals[0].canceled).to.equal(proposal.canceled);
+    expect(proposals[0].state).to.equal(proposal.state);
   });
 
   it('Submit product', async () => {
     await system
       .connect(signers[0])
-      .submitProduct(proposal.id, 'https://...', 'brabrabra...');
+      .submit(proposal.id, 'https://...', 'brabrabra...');
     submission = await system.submissions(proposal.id, signers[0].address);
     expect(submission.proposalId).to.equal(proposal.id);
     expect(submission.submitter).to.equal(signers[0].address);
@@ -162,7 +163,7 @@ describe('System', () => {
   it('Cancel the proposal', async () => {
     await system.cancelProposal(proposal.id);
     proposal = await system.proposals(proposal.id);
-    expect(proposal.canceled).to.equal(true);
+    expect(proposal.state).to.equal(4);
   });
 
   it('Cannot submit/vote to the canceled proposal', async () => {
@@ -170,7 +171,7 @@ describe('System', () => {
     try {
       await system
         .connect(signers[0])
-        .submitProduct(proposal.id, 'https://...', 'New submission');
+        .submit(proposal.id, 'https://...', 'New submission');
       assert.fail();
     } catch (e) {
       if (e instanceof AssertionError) assert.fail();

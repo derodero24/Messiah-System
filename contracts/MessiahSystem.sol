@@ -8,13 +8,26 @@ import "./MessiahTokens.sol";
 contract MessiahSystem {
     /* ########## Event ########## */
     event Propose(address indexed proposer, uint256 proposalId);
+    event Submit(address indexed submitter, uint256 submissionId);
+    event Vote(address indexed voter, Option option);
 
-    /* ########## Enum/Struct ########## */
-    enum VOTE {
+    /* ########## Enum ########## */
+    enum ProposalState {
+        VOTING,
+        DEVELOPING,
+        COMPLETED,
+        DEFEATED,
+        CANCELED
+    }
+
+    enum Option {
+        UNVOTED,
         FOR,
         AGAINST,
         ABSTAIN
     }
+
+    /* ########## Struct ########## */
 
     struct Proposal {
         uint256 id;
@@ -23,18 +36,18 @@ contract MessiahSystem {
         string title;
         string description;
         uint256 reward;
-        bool canceled;
+        ProposalState state;
     }
 
     struct Submission {
+        uint256 id;
         uint256 proposalId;
         address submitter;
         string url;
         string comment;
     }
 
-    struct VoteInfo {
-        uint256 proposalId;
+    struct Tally {
         uint256 totalFor; // 賛成
         uint256 totalAgainst; // 反対
         uint256 totalAbstain; // 棄権
@@ -61,8 +74,9 @@ contract MessiahSystem {
     mapping(uint256 => address[]) private _submitters;
     mapping(uint256 => mapping(address => Submission)) public submissions;
 
-    // Vote (proposal ID -> voter address -> info)
-    // mapping(uint256 => mapping(address => Worker)) public VoteMap;
+    // Vote (proposal/submission ID -> info)
+    mapping(uint256 => Tally) public tallies;
+    mapping(uint256 => mapping(address => Option)) public votes;
 
     // Others
     address[] public blacklist; // 運営アカウント
@@ -92,12 +106,13 @@ contract MessiahSystem {
         _;
     }
 
-    modifier onlyForValidProposal(uint256 proposalId) {
+    modifier onlyForActiveProposal(uint256 proposalId) {
         // 有効なProposalに対する処理
         require(proposals[proposalId].id != 0, "Invalid proposal ID.");
         require(
-            proposals[proposalId].canceled == false,
-            "The proposal has already canseled."
+            proposals[proposalId].state == ProposalState.VOTING ||
+                proposals[proposalId].state == ProposalState.DEVELOPING,
+            "This proposal is not active."
         );
         require(
             block.timestamp < proposals[proposalId].timestamp + VOTING_PERIOD,
@@ -170,34 +185,35 @@ contract MessiahSystem {
 
     function cancelProposal(uint256 proposalId)
         external
-        onlyForValidProposal(proposalId)
+        onlyForActiveProposal(proposalId)
     {
-        proposals[proposalId].canceled = true;
+        proposals[proposalId].state = ProposalState.CANCELED;
     }
 
-    function submitProduct(
+    function submit(
         uint256 proposalId,
         string memory url,
         string memory comment
-    ) external onlyForValidProposal(proposalId) {
+    ) external onlyForActiveProposal(proposalId) {
         // 提出
         _submitters[proposalId].push(msg.sender);
+        uint256 id = uint256(keccak256(abi.encode(proposalId, msg.sender)));
         submissions[proposalId][msg.sender] = Submission(
+            id,
             proposalId,
             msg.sender,
             url,
             comment
         );
+        emit Submit(msg.sender, id);
     }
 
-    // function vote(uint256 proposalId, address worker)
-    //     external
-    //     onlyForValidProposal(proposalId)
-    // {
+    // function vote(uint256 targetId, Option option) external {
     //     // 投票
     //     // require();
     //     // TODO: 提案の採択, 報酬の支払い, 両方に対応
     //     // proposals[proposalId].totalVotes++;
+    //     emit Vote(msg.sender, option);
     // }
 
     function claimReward(uint256 proposalId) external {
@@ -242,7 +258,7 @@ contract MessiahSystem {
             title,
             description,
             reward,
-            false
+            ProposalState.VOTING
         );
         emit Propose(proposer, id);
     }
