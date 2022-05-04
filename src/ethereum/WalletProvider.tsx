@@ -16,7 +16,11 @@ import {
 import { MessiahSystem, MessiahSystemFactory } from '../../typechain-types';
 import messiahSystem from './abi/MessiahSystem.json';
 import messiahSystemFactory from './abi/MessiahSystemFactory.json';
-import { Tally, Wallet } from './contractVariables';
+import {
+  MessiahSystemFactoryAddress,
+  Tally,
+  Wallet,
+} from './contractVariables';
 
 declare global {
   interface Window {
@@ -52,12 +56,17 @@ export const WalletContext = createContext({
   voteForBlacklist: (_account: string, _option: BigNumberish) => {},
   voteForProposal: (_proposalId: BigNumberish, _option: BigNumberish) => {},
   voteForSubmission: (_submissionId: BigNumberish, _option: BigNumberish) => {},
+  // Claim
+  claimMessiahToken: async () => {},
+  claimReward: async (_proposalId: BigNumberish) => {},
   // Others
   convertToAccountId: async (_account: string) =>
     undefined as undefined | BigNumber,
+  checkOwnVote: async (_targetId: BigNumberish) =>
+    undefined as undefined | number,
+  hasClaimed: async () => undefined as undefined | boolean,
+  isBlacklisted: async (_account: string) => undefined as undefined | boolean,
 });
-
-const contractAddress = '0x5d06B61384b8dd54A35506addE6a691E11D27831';
 
 export default function WalletProvider(props: { children: ReactNode }) {
   const [wallet, setWallet] = useState<Wallet>();
@@ -87,7 +96,7 @@ export default function WalletProvider(props: { children: ReactNode }) {
       const signer = provider.getSigner();
 
       const messiahSystemFactoryContract = new Contract(
-        contractAddress,
+        MessiahSystemFactoryAddress,
         messiahSystemFactory.abi,
         signer
       ) as MessiahSystemFactory;
@@ -152,7 +161,7 @@ export default function WalletProvider(props: { children: ReactNode }) {
     const signer = provider.getSigner();
 
     const messiahSystemFactoryContract = new Contract(
-      contractAddress,
+      MessiahSystemFactoryAddress,
       messiahSystemFactory.abi,
       signer
     ) as MessiahSystemFactory;
@@ -236,10 +245,34 @@ export default function WalletProvider(props: { children: ReactNode }) {
     );
   };
 
+  /* ########## Claim ########## */
+  const claimMessiahToken = async () => {
+    await wallet?.contract.messiahSystem?.claimMessiahToken();
+  };
+
+  const claimReward = async (proposalId: BigNumberish) => {
+    await wallet?.contract.messiahSystem?.claimReward(proposalId);
+  };
+
   /* ########## Others ########## */
 
   const convertToAccountId = async (account: string) => {
     return wallet?.contract.messiahSystem?.accountId(account);
+  };
+
+  const checkOwnVote = async (targetId: BigNumberish) => {
+    // 自分の投票内容をチェック
+    return wallet?.contract.messiahSystem?.votes(targetId, wallet.address);
+  };
+
+  const hasClaimed = async () => {
+    // Messiah Tokenをclaim済みか
+    return wallet?.contract.messiahSystem?.hasClaimed(wallet.address);
+  };
+
+  const isBlacklisted = async (account: string) => {
+    // Blacklist入りしているアドレスか
+    return wallet?.contract.messiahSystem?.isBlacklisted(account);
   };
 
   return (
@@ -258,7 +291,12 @@ export default function WalletProvider(props: { children: ReactNode }) {
         voteForBlacklist,
         voteForProposal,
         voteForSubmission,
+        claimMessiahToken,
+        claimReward,
         convertToAccountId,
+        checkOwnVote,
+        hasClaimed,
+        isBlacklisted,
       }}
     >
       {props.children}
