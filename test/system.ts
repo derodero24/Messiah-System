@@ -12,6 +12,21 @@ import {
   SimpleERC721,
 } from '../typechain-types';
 
+const ProposalState = {
+  VOTING: 0,
+  DEVELOPING: 1,
+  COMPLETED: 2,
+  DEFEATED: 3,
+  CANCELED: 4,
+} as const;
+
+const Option = {
+  UNVOTED: 0,
+  FOR: 1,
+  AGAINST: 2,
+  ABSTAIN: 3,
+} as const;
+
 describe('System', () => {
   // Shared variables
   let signers: SignerWithAddress[];
@@ -113,7 +128,7 @@ describe('System', () => {
     expect(proposal.title).to.equal('title');
     expect(proposal.description).to.equal('Some proposal');
     expect(proposal.reward).to.equal(100);
-    expect(proposal.state).to.equal(0);
+    expect(proposal.state).to.equal(ProposalState.VOTING);
   });
 
   it('Get all proposals', async () => {
@@ -164,6 +179,35 @@ describe('System', () => {
     expect(submissions[0].comment).to.equal(submission.comment);
   });
 
+  it('Vote to the proposal', async () => {
+    await system.connect(signers[0]).vote(proposal.id, Option.FOR);
+    await system.connect(signers[1]).vote(proposal.id, Option.AGAINST);
+    await system.connect(signers[2]).vote(proposal.id, Option.ABSTAIN);
+    await system.connect(signers[3]).vote(proposal.id, Option.ABSTAIN);
+
+    // Check own
+    expect(
+      await system.connect(signers[0]).votes(proposal.id, signers[0].address)
+    ).to.equal(Option.FOR);
+    // Check others
+    expect(
+      await system.connect(signers[0]).votes(proposal.id, signers[1].address)
+    ).to.equal(Option.AGAINST);
+    // Check tally
+    const tally = await system.tallies(proposal.id);
+    expect(tally.totalFor).to.equal(1);
+    expect(tally.totalAgainst).to.equal(1);
+    expect(tally.totalAbstain).to.equal(2);
+  });
+
+  it('Can change votes', async () => {
+    await system.connect(signers[3]).vote(proposal.id, Option.FOR);
+    const tally = await system.tallies(proposal.id);
+    expect(tally.totalFor).to.equal(2);
+    expect(tally.totalAgainst).to.equal(1);
+    expect(tally.totalAbstain).to.equal(1);
+  });
+
   it('Cannnot cancel the proposal by unproposer', async () => {
     // Should be error
     try {
@@ -183,9 +227,13 @@ describe('System', () => {
   it('Cannot submit/vote to the canceled proposal', async () => {
     // Should be error
     try {
-      await system
-        .connect(signers[0])
-        .submit(proposal.id, 'https://...', 'New submission');
+      await system.submit(proposal.id, 'https://...', 'New submission');
+      assert.fail();
+    } catch (e) {
+      if (e instanceof AssertionError) assert.fail();
+    }
+    try {
+      await system.vote(proposal.id, Option.FOR);
       assert.fail();
     } catch (e) {
       if (e instanceof AssertionError) assert.fail();
