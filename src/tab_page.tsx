@@ -1,16 +1,15 @@
 import * as React from 'react';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
-import Typography from '@mui/material/Typography';
+
 import Box from '@mui/material/Box';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
+import Typography from '@mui/material/Typography';
 
-import OtherSite from "./other_site"
-import Step0 from "./step0";
-import Step1 from "./step1";
-import Step2 from "./step2";
-import Step3 from "./step3";
-import Step4 from "./step4";
-
+import Step0 from './step0';
+import Step1 from './step1';
+import Step2 from './step2';
+import Step3 from './step3';
+import Step4 from './step4';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -23,17 +22,13 @@ function TabPanel(props: TabPanelProps) {
 
   return (
     <div
-      role="tabpanel"
+      role='tabpanel'
       hidden={value !== index}
       id={`simple-tabpanel-${index}`}
       aria-labelledby={`simple-tab-${index}`}
       {...other}
     >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          <Typography>{children}</Typography>
-        </Box>
-      )}
+      {value === index && <Typography sx={{ p: 3 }}>{children}</Typography>}
     </div>
   );
 }
@@ -55,32 +50,32 @@ export default function TabPages() {
   return (
     <Box sx={{ width: '100%' }}>
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
-          <Tab label="Other Site : You make Messiah System"  {...a11yProps(0)} />
-          <Tab label="Step 0 : Decision of creating Eden"  {...a11yProps(1)} />
-          <Tab label="Step 1 : Expelled from paradise" {...a11yProps(2)} />
-          <Tab label="Step 2 : Eden life" {...a11yProps(3)} />
-          <Tab label="Step 3 : Wizard of Creation" {...a11yProps(4)} />
-          <Tab label="Step 4 : Apple Eat" {...a11yProps(5)} />
+        <Tabs
+          value={value}
+          onChange={handleChange}
+          aria-label='basic tabs example'
+        >
+          <Tab label='Step 0 : You make Messiah System' {...a11yProps(0)} />
+          <Tab label='Step 1 : Expelled from paradise' {...a11yProps(1)} />
+          <Tab label='Step 2 : Eden life' {...a11yProps(2)} />
+          <Tab label='Step 3 : Wizard of Creation' {...a11yProps(3)} />
+          <Tab label='Step 4 : Apple Eat' {...a11yProps(4)} />
         </Tabs>
       </Box>
       <TabPanel value={value} index={0}>
-        <OtherSite/>
+        <Step0 />
       </TabPanel>
       <TabPanel value={value} index={1}>
-        <Step0/>
+        <Step1 />
       </TabPanel>
       <TabPanel value={value} index={2}>
-      <Step1/>
+        <Step2 />
       </TabPanel>
       <TabPanel value={value} index={3}>
-      <Step2/>
+        <Step3 />
       </TabPanel>
       <TabPanel value={value} index={4}>
-      <Step3/>
-      </TabPanel>
-      <TabPanel value={value} index={5}>
-      <Step4/>
+        <Step4 />
       </TabPanel>
     </Box>
   );
