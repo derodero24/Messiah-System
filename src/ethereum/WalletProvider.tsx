@@ -31,9 +31,10 @@ declare global {
 export const WalletContext = createContext({
   wallet: undefined as Wallet,
   connectWallet: () => {},
+  // Factory
   connectMessiahSystem: async (_erc721Add: string) => false,
+  disconnectMessiahSystem: () => {},
   deployMessiahSystem: async (_erc721Addr: string, _erc20Addr: string) => false,
-  updateProposalState: async () => {},
   // Getter
   getBlacklist: async (_page: number) => [] as string[],
   getProposals: async (_page: number) =>
@@ -68,6 +69,7 @@ export const WalletContext = createContext({
   hasClaimed: async () => undefined as undefined | boolean,
   isBlacklisted: async (_account: string) => undefined as undefined | boolean,
   // Test
+  updateProposalState: async () => {},
   endFreezing: async () => {},
   endVoting: async (_proposalId: BigNumberish) => {},
 });
@@ -76,6 +78,11 @@ export default function WalletProvider(props: { children: ReactNode }) {
   const [wallet, setWallet] = useState<Wallet>();
   const [walletAddress, setWalletAddress] = useState('');
   const [messiahSystemAddress, setMessiahSystemAddress] = useState('');
+
+  const onAccountsChanged = useCallback((addresses: string[]) => {
+    if (!addresses.length) setWalletAddress('');
+    else setWalletAddress(addresses[0]);
+  }, []);
 
   const connectWallet = useCallback(() => {
     if (window.ethereum?.isMetaMask) {
@@ -90,108 +97,48 @@ export default function WalletProvider(props: { children: ReactNode }) {
     } else {
       console.log('MetaMask is not installed.');
     }
+  }, [onAccountsChanged]);
+
+  /* ########## Factory ########## */
+
+  const connectMessiahSystem = useCallback(
+    async (erc721Add: string) => {
+      return (
+        wallet?.contract.messiahSystemFactory
+          .messiahSystemAddress(erc721Add)
+          .then(address => {
+            console.log('address:', address);
+            if (address !== constants.AddressZero) {
+              setMessiahSystemAddress(address);
+              return true;
+            } else {
+              return false;
+            }
+          }) || false
+      );
+    },
+    [wallet?.contract.messiahSystemFactory]
+  );
+
+  const disconnectMessiahSystem = useCallback(() => {
+    setMessiahSystemAddress('');
   }, []);
 
-  const onAccountsChanged = (addresses: string[]) => {
-    if (!addresses.length) {
-      setWallet(undefined);
-    } else {
-      const provider = new Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-
-      const messiahSystemFactoryContract = new Contract(
-        MessiahSystemFactoryAddress,
-        messiahSystemFactory.abi,
-        signer
-      ) as MessiahSystemFactory;
-
-      let messiahSystemContract;
-
-      if (messiahSystemAddress) {
-        messiahSystemContract = new Contract(
-          messiahSystemAddress,
-          messiahSystem.abi,
-          signer
-        ) as MessiahSystem;
-      } else {
-        messiahSystemContract = undefined;
+  const deployMessiahSystem = useCallback(
+    async (erc721Add: string, erc20Add: string) => {
+      try {
+        await wallet?.contract.messiahSystemFactory.deployMessiahSystem(
+          erc721Add,
+          erc20Add
+        );
+        return true;
+      } catch (error) {
+        console.log(error);
+        return false;
       }
-
-      setWalletAddress(addresses[0]);
-
-      setWallet({
-        provider,
-        signer,
-        address: addresses[0],
-        contract: {
-          messiahSystemFactory: messiahSystemFactoryContract,
-          messiahSystem: messiahSystemContract,
-        },
-      });
-    }
-  };
-
-  const connectMessiahSystem = async (erc721Add: string) => {
-    return (
-      wallet?.contract.messiahSystemFactory
-        .messiahSystemAddress(erc721Add)
-        .then(address => {
-          console.log('address:', address);
-          if (address !== constants.AddressZero) {
-            updateContract(address);
-            return true;
-          } else {
-            return false;
-          }
-        }) || false
-    );
-  };
-
-  const deployMessiahSystem = async (erc721Add: string, erc20Add: string) => {
-    try {
-      await wallet?.contract.messiahSystemFactory.deployMessiahSystem(
-        erc721Add,
-        erc20Add
-      );
-      return true;
-    } catch (error) {
-      console.log(error);
-      return false;
-    }
-  };
-
-  const updateContract = async (messiahSystemAddressInput: string) => {
-    setMessiahSystemAddress(messiahSystemAddressInput);
-
-    const provider = new Web3Provider(window.ethereum);
-    const signer = provider.getSigner();
-
-    const messiahSystemFactoryContract = new Contract(
-      MessiahSystemFactoryAddress,
-      messiahSystemFactory.abi,
-      signer
-    ) as MessiahSystemFactory;
-
-    const messiahSystemContract = new Contract(
-      messiahSystemAddressInput,
-      messiahSystem.abi,
-      signer
-    ) as MessiahSystem;
-
-    setWallet({
-      provider,
-      signer,
-      address: walletAddress,
-      contract: {
-        messiahSystemFactory: messiahSystemFactoryContract,
-        messiahSystem: messiahSystemContract,
-      },
-    });
-  };
-
-  const updateProposalState = useCallback(async () => {
-    await wallet?.contract.messiahSystem?.updateProposalState();
-  }, [wallet?.contract.messiahSystem]);
+    },
+    [wallet?.contract.messiahSystemFactory]
+  );
 
   /* ########## Getter ########## */
   const getBlacklist = useCallback(
@@ -287,46 +234,108 @@ export default function WalletProvider(props: { children: ReactNode }) {
 
   /* ########## Others ########## */
 
-  const convertToAccountId = async (account: string) => {
-    return wallet?.contract.messiahSystem?.accountId(account);
-  };
+  const convertToAccountId = useCallback(
+    async (account: string) => {
+      return wallet?.contract.messiahSystem?.accountId(account);
+    },
+    [wallet?.contract.messiahSystem]
+  );
 
-  const checkOwnVote = async (targetId: BigNumberish) => {
-    // 自分の投票内容をチェック
-    return wallet?.contract.messiahSystem?.votes(targetId, wallet.address);
-  };
+  const checkOwnVote = useCallback(
+    async (targetId: BigNumberish) => {
+      // 自分の投票内容をチェック
+      return wallet?.contract.messiahSystem?.votes(targetId, wallet.address);
+    },
+    [wallet]
+  );
 
-  const hasClaimed = async () => {
+  const hasClaimed = useCallback(async () => {
     // Messiah Tokenをclaim済みか
     return wallet?.contract.messiahSystem?.hasClaimed(wallet.address);
-  };
+  }, [wallet]);
 
-  const isBlacklisted = async (account: string) => {
-    // Blacklist入りしているアドレスか
-    return wallet?.contract.messiahSystem?.isBlacklisted(account);
-  };
+  const isBlacklisted = useCallback(
+    async (account: string) => {
+      // Blacklist入りしているアドレスか
+      return wallet?.contract.messiahSystem?.isBlacklisted(account);
+    },
+    [wallet?.contract.messiahSystem]
+  );
 
   /* ########## Test ########## */
-  const endFreezing = async () => {
+  const updateProposalState = useCallback(async () => {
+    await wallet?.contract.messiahSystem?.updateProposalState();
+  }, [wallet?.contract.messiahSystem]);
+
+  const endFreezing = useCallback(async () => {
     // Blacklist入りしているアドレスか
     await wallet?.contract.messiahSystem?.endFreezing();
-  };
+  }, [wallet?.contract.messiahSystem]);
 
-  const endVoting = async (proposalId: BigNumberish) => {
-    // Blacklist入りしているアドレスか
-    await wallet?.contract.messiahSystem?.endVoting(proposalId);
-  };
+  const endVoting = useCallback(
+    async (proposalId: BigNumberish) => {
+      // Blacklist入りしているアドレスか
+      await wallet?.contract.messiahSystem?.endVoting(proposalId);
+    },
+    [wallet?.contract.messiahSystem]
+  );
 
   useEffect(() => {
-    // Connect on page load
-    connectWallet();
+    // ページロード時
+    connectWallet(); // ウォレット接続
+    setMessiahSystemAddress(localStorage.getItem('MessiahAddress') || ''); // ローカルストレージ読み込み
   }, [connectWallet]);
 
   useEffect(() => {
+    // ウォレット/コントラクト情報更新時にウォレット更新
+    if (!walletAddress) {
+      setWallet(undefined);
+      return;
+    }
+
+    const provider = new Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+
+    const messiahSystemFactoryContract = new Contract(
+      MessiahSystemFactoryAddress,
+      messiahSystemFactory.abi,
+      signer
+    ) as MessiahSystemFactory;
+
+    const messiahSystemContract = messiahSystemAddress
+      ? (new Contract(
+          messiahSystemAddress,
+          messiahSystem.abi,
+          signer
+        ) as MessiahSystem)
+      : undefined;
+
+    setWallet({
+      provider,
+      signer,
+      address: walletAddress,
+      contract: {
+        messiahSystemFactory: messiahSystemFactoryContract,
+        messiahSystem: messiahSystemContract,
+      },
+    });
+  }, [walletAddress, messiahSystemAddress]);
+
+  useEffect(() => {
+    // ウォレット更新時にローカルストレージ更新
+    if (!wallet?.contract.messiahSystem) return;
+    localStorage.setItem(
+      'MessiahAddress',
+      wallet.contract.messiahSystem.address
+    );
+  }, [wallet?.contract.messiahSystem]);
+
+  useEffect(() => {
+    // ウォレット更新時にイベントリスナーセット
     if (!wallet) return;
     window.ethereum.on('accountsChanged', onAccountsChanged);
     window.ethereum.on('chainChanged', () => window.location.reload());
-  }, [wallet]);
+  }, [wallet, onAccountsChanged]);
 
   return (
     <WalletContext.Provider
@@ -334,6 +343,7 @@ export default function WalletProvider(props: { children: ReactNode }) {
         wallet,
         connectWallet,
         connectMessiahSystem,
+        disconnectMessiahSystem,
         deployMessiahSystem,
         updateProposalState,
         getBlacklist,

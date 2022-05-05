@@ -10,37 +10,34 @@ type messiahProps = {
 };
 
 function Step0() {
-  const { deployMessiahSystem, connectMessiahSystem } =
-    React.useContext(WalletContext);
+  const walletContext = React.useContext(WalletContext);
   const [createMessiahProps, setCreateMessiahProps] =
     React.useState<messiahProps>({ erc721Add: '', erc20Add: '' });
   const [erc721Address, setERC721Address] = React.useState('');
-  const [messiahExists, setMessiahExists] = React.useState(false);
   const [checkFlag, setCheckFlag] = React.useState(false);
 
   const createMessiahPressed = async () => {
     //contract method
     console.log(createMessiahProps);
     // デプロイTX
-    const res = await deployMessiahSystem(
+    const res = await walletContext.deployMessiahSystem(
       createMessiahProps.erc721Add,
       createMessiahProps.erc20Add
     );
     if (res) {
       // TX完了まで1秒ごとに更新
       const timer = setInterval(async () => {
-        const res = await connectMessiahSystem(createMessiahProps.erc721Add);
-        if (res) {
-          clearInterval(timer);
-          setMessiahExists(true);
-        }
+        const res = await walletContext.connectMessiahSystem(
+          createMessiahProps.erc721Add
+        );
+        if (res) clearInterval(timer);
       }, 1000);
     }
   };
 
   const checkMessiahExistsPressed = async () => {
     //contract method
-    setMessiahExists(await connectMessiahSystem(erc721Address));
+    await walletContext.connectMessiahSystem(erc721Address);
     setCheckFlag(true);
   };
 
@@ -58,8 +55,27 @@ function Step0() {
   };
 
   const createMessiahForm = () => {
-    if (messiahExists) {
-      return <Typography variant='h4'>You Go Next Step</Typography>;
+    if (walletContext.wallet?.contract.messiahSystem) {
+      return (
+        <Grid>
+          <Typography variant='h3' gutterBottom>
+            You Go Next Step
+          </Typography>
+          <Typography variant='h5'>
+            Connecting Messiah System: {walletContext.wallet.address}
+          </Typography>
+          <Button
+            variant='contained'
+            sx={{ mt: 4 }}
+            onClick={() => {
+              setCheckFlag(false);
+              walletContext.disconnectMessiahSystem();
+            }}
+          >
+            Disconnect
+          </Button>
+        </Grid>
+      );
     } else if (!checkFlag) {
       return (
         <Paper elevation={3} sx={{ p: 4 }}>
