@@ -9,13 +9,10 @@ import {
   useQuery,
 } from '@apollo/client';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
-import ReplayIcon from '@mui/icons-material/Replay';
 import {
   Box,
   Button,
-  colors,
   Grid,
-  IconButton,
   Paper,
   Table,
   TableBody,
@@ -80,7 +77,7 @@ function BasicTable(props: {
 
 const dummy_symbol = 'MSH';
 
-const dummy_balance = [
+const dummyBalance = [
   {
     wallet: '0xE3D094a5C68732C9E5D6574AC4071dC0d8bE151E',
     balance: 2142,
@@ -197,29 +194,26 @@ function Step1() {
   };
 
   React.useEffect(() => {
-    dummy_balance.sort(function (a, b) {
-      if (a.balance < b.balance) {
-        return 1;
-      } else {
-        return -1;
-      }
+    // 降順に並び替え
+    dummyBalance.sort((a, b) => {
+      if (a.balance < b.balance) return 1;
+      else return -1;
     });
-    setData(dummy_balance);
+    setData(dummyBalance);
   }, []);
 
   React.useEffect(() => {
+    // 1秒おきにブラックリスト更新
     const timer = setInterval(() => updateBlacklist(), 1000);
     return () => clearInterval(timer);
   }, [updateBlacklist]);
 
   return (
     <div>
-      <Grid container alignItems='center' justifyContent='center'>
-        <Box mt={5} mb={5}>
-          <Typography variant='h2' gutterBottom component='div'>
-            Expelled From Paradice
-          </Typography>
-        </Box>
+      <Grid container justifyContent='center'>
+        <Typography variant='h2' mt={5} mb={5}>
+          Expelled From Paradice
+        </Typography>
       </Grid>
 
       <ApolloProvider client={client}>
@@ -229,16 +223,7 @@ function Step1() {
       <BasicTable data={data} funcVote={vote} />
 
       <Box sx={{ my: 4 }}>
-        <Typography variant='h4'>
-          Blacklist
-          <IconButton
-            sx={{ color: colors.blue[500] }}
-            onClick={updateBlacklist}
-          >
-            <ReplayIcon />
-          </IconButton>
-        </Typography>
-
+        <Typography variant='h4'>Blacklist</Typography>
         {blacklist.map(item => {
           return (
             <div key={item} style={{ textIndent: '2em' }}>
@@ -252,7 +237,9 @@ function Step1() {
         <Typography variant='h4' gutterBottom>
           Go Eden
         </Typography>
-        <Button onClick={claimPressed}>Claim new coin</Button>
+        <Button variant='contained' onClick={claimPressed}>
+          Claim new token
+        </Button>
       </Box>
     </div>
   );

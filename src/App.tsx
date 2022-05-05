@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 
 import { WalletContext } from './ethereum/WalletProvider';
-import TabPages from './tab_page';
+import TabPages from './TabPages';
 
 export default function App(): JSX.Element {
   const { wallet, connectWallet } = useContext(WalletContext);

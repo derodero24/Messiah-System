@@ -28,7 +28,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`simple-tab-${index}`}
       {...other}
     >
-      {value === index && <Typography sx={{ p: 3 }}>{children}</Typography>}
+      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
     </div>
   );
 }
@@ -49,12 +49,8 @@ export default function TabPages() {
 
   return (
     <Box sx={{ width: '100%' }}>
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs
-          value={value}
-          onChange={handleChange}
-          aria-label='basic tabs example'
-        >
+      <Box sx={{ borderBottom: 2, borderColor: 'divider' }}>
+        <Tabs value={value} onChange={handleChange}>
           <Tab label='Step 0 : You make Messiah System' {...a11yProps(0)} />
           <Tab label='Step 1 : Expelled from paradise' {...a11yProps(1)} />
           <Tab label='Step 2 : Eden life' {...a11yProps(2)} />

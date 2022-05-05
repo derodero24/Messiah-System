@@ -9,7 +9,7 @@ type messiahProps = {
   erc20Add: string;
 };
 
-function Step0() {
+export default function Step0() {
   const walletContext = React.useContext(WalletContext);
   const [createMessiahProps, setCreateMessiahProps] =
     React.useState<messiahProps>({ erc721Add: '', erc20Add: '' });
@@ -19,7 +19,7 @@ function Step0() {
   const createMessiahPressed = async () => {
     //contract method
     console.log(createMessiahProps);
-    // デプロイTX
+    // デプロイ
     const res = await walletContext.deployMessiahSystem(
       createMessiahProps.erc721Add,
       createMessiahProps.erc20Add
@@ -66,6 +66,7 @@ function Step0() {
           </Typography>
           <Button
             variant='contained'
+            color='inherit'
             sx={{ mt: 4 }}
             onClick={() => {
               setCheckFlag(false);
@@ -166,15 +167,13 @@ function Step0() {
   };
 
   return (
-    <div>
+    <>
       <Grid container justifyContent='center'>
-        <Typography mt={5} mb={5} variant='h2'>
+        <Typography variant='h2' mt={5} mb={5}>
           Messiah System
         </Typography>
       </Grid>
       {createMessiahForm()}
-    </div>
+    </>
   );
 }
-
-export default Step0;
