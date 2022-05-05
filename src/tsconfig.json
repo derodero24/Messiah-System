@@ -9,5 +9,5 @@
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
     "resolveJsonModule": true
-  },
+  }
 }

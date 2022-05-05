@@ -41,7 +41,7 @@ export const WalletContext = createContext({
     [] as MessiahSystem.ProposalStructOutput[],
   getSubmissions: async (_proposalId: BigNumberish, _page: number) =>
     [] as MessiahSystem.SubmissionStructOutput[],
-  getTally: async (_id: BigNumberish) => undefined as undefined | Tally,
+  getTally: async (_account: string) => undefined as undefined | Tally,
   // Propose
   submitProposal: async (
     _title: string,
@@ -166,15 +166,19 @@ export default function WalletProvider(props: { children: ReactNode }) {
   );
 
   const getTally = useCallback(
-    async (targetId: BigNumberish) => {
-      return wallet?.contract.messiahSystem?.tallies(targetId).then(
-        res =>
-          ({
-            totalFor: res.totalFor,
-            totalAgainst: res.totalAgainst,
-            totalAbstain: res.totalAbstain,
-          } as Tally)
-      );
+    async (account: string) => {
+      return wallet?.contract.messiahSystem
+        ?.accountId(account)
+        .then(id => wallet?.contract.messiahSystem?.tallies(id))
+        .then(
+          res =>
+            res &&
+            ({
+              totalFor: res.totalFor,
+              totalAgainst: res.totalAgainst,
+              totalAbstain: res.totalAbstain,
+            } as Tally)
+        );
     },
     [wallet?.contract.messiahSystem]
   );

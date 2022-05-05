@@ -17,7 +17,7 @@ export default function Step0() {
   const [checkFlag, setCheckFlag] = React.useState(false);
 
   const createMessiahPressed = async () => {
-    //contract method
+    // contract method
     console.log(createMessiahProps);
     // デプロイ
     const res = await walletContext.deployMessiahSystem(
@@ -36,7 +36,7 @@ export default function Step0() {
   };
 
   const checkMessiahExistsPressed = async () => {
-    //contract method
+    // contract method
     await walletContext.connectMessiahSystem(erc721Address);
     setCheckFlag(true);
   };

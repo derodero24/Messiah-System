@@ -38,8 +38,29 @@ function BasicTable(props: {
   data: any[];
   funcVote: (address: string) => void;
 }) {
+  const { getTally } = React.useContext(WalletContext);
+  const [voteCounts, setVoteCounts] = React.useState(
+    Array.from({ length: props.data.length }, () => 0)
+  );
+
+  React.useEffect(() => {
+    // 1秒ごとに票数更新
+    const newVoteCounts = Array.from({ length: props.data.length }, () => 0);
+    const timer = setInterval(() => {
+      for (let i = 0; i < props.data.length; i++) {
+        getTally(props.data[i].wallet).then(tally => {
+          if (tally) {
+            newVoteCounts[i] = tally.totalFor.toNumber();
+            setVoteCounts(newVoteCounts);
+          }
+        });
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [props.data, getTally]);
+
   return (
-    <TableContainer component={Paper}>
+    <TableContainer component={Paper} sx={{ my: 4 }}>
       <Table sx={{ minWidth: 650 }} aria-label='simple table'>
         <TableHead>
           <TableRow>
@@ -50,7 +71,7 @@ function BasicTable(props: {
           </TableRow>
         </TableHead>
         <TableBody>
-          {props.data.map(row => (
+          {props.data.map((row, idx) => (
             <TableRow
               key={row.wallet}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
@@ -66,6 +87,7 @@ function BasicTable(props: {
                 >
                   <HowToVoteIcon />
                 </Button>
+                {voteCounts[idx]}
               </TableCell>
             </TableRow>
           ))}
@@ -83,11 +105,26 @@ const dummyBalance = [
     balance: 2142,
     ratio: 70.0,
   },
-  { wallet: '0x42275925858', balance: 212, ratio: 9.5 },
-  { wallet: '0x54275925803', balance: 42, ratio: 4.0 },
-  { wallet: '0x89275925835', balance: 22, ratio: 2.8 },
-  { wallet: '0x99275925875', balance: 32, ratio: 3.2 },
-  { wallet: '0x09275925863', balance: 242, ratio: 10.5 },
+  {
+    wallet: '0xab13accfc85a69d6ce95b0d91e1184f4cd56783b',
+    balance: 212,
+    ratio: 9.5,
+  },
+  {
+    wallet: '0x28efa0ab047a40afe6bd3f00dea09e88f644080b',
+    balance: 42,
+    ratio: 4.0,
+  },
+  {
+    wallet: '0xcee78947980f5d06bfe05f02f116080e14adb8c1',
+    balance: 22,
+    ratio: 2.8,
+  },
+  {
+    wallet: '0x4b8619890fa9c3cf11c497961eb4b970d440127f',
+    balance: 32,
+    ratio: 3.2,
+  },
 ];
 
 const first: any = {
@@ -155,23 +192,21 @@ function TokenBalanceGraph() {
   };
 
   return (
-    <div>
-      <Grid container>
-        <Grid item xs={6}>
-          {tokenHolders.map((tokenHolder: any) => (
-            <div key={tokenHolder.id} style={{ margin: '20px' }}>
-              <div>アドレス： {tokenHolder.id}</div>
-              <div>残高： {tokenHolder.balance}</div>
-            </div>
-          ))}
-        </Grid>
-        <Grid item xs={6}>
-          <Box sx={{ width: '75%' }}>
-            <Doughnut data={graphData} />
-          </Box>
-        </Grid>
+    <Grid container>
+      <Grid item xs={6}>
+        {tokenHolders.map((tokenHolder: any) => (
+          <div key={tokenHolder.id} style={{ margin: '20px' }}>
+            <div>アドレス： {tokenHolder.id}</div>
+            <div>残高： {tokenHolder.balance}</div>
+          </div>
+        ))}
       </Grid>
-    </div>
+      <Grid item xs={6}>
+        <Box sx={{ width: '75%' }}>
+          <Doughnut data={graphData} />
+        </Box>
+      </Grid>
+    </Grid>
   );
 }
 
