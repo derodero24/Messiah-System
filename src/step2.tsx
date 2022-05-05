@@ -1,4 +1,7 @@
-import * as React from "react";
+import * as React from 'react';
+
+import { HowToVote, Send } from '@mui/icons-material';
+import { Button, Grid, Paper, TextField, Typography } from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -6,37 +9,39 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 
-import {Grid, TextField, MenuItem, Box, Button, Typography, Fab, Paper} from "@mui/material";
-import {Send, AddPhotoAlternate, HowToVote} from "@mui/icons-material";
+import { MessiahSystem } from '../typechain-types';
+import { Option } from './ethereum/contractVariables';
 import { WalletContext } from './ethereum/WalletProvider';
-import { MessiahSystem} from '../typechain-types';
-import {Option} from "./ethereum/contractVariables";
 
-
-
-function BasicTable(props: { data: any[]; }) {
-  const {voteForProposal} = React.useContext(WalletContext);
-
+function BasicTable(props: { data: any[] }) {
+  const { voteForProposal } = React.useContext(WalletContext);
   return (
-    <TableContainer component={Paper}>
-      <Table sx={{ minWidth: 650 }} aria-label="simple table">
+    <TableContainer component={Paper} elevation={3}>
+      <Table sx={{ minWidth: 650 }} aria-label='simple table'>
         <TableHead>
           <TableRow>
-            <TableCell align="right">Title</TableCell>
-            <TableCell align="right">Description</TableCell>
-            <TableCell align="right">Reward</TableCell>
+            <TableCell align='right'>Title</TableCell>
+            <TableCell align='right'>Description</TableCell>
+            <TableCell align='right'>Reward</TableCell>
+            <TableCell align='right'>Vote</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {props.data.map((row) => (
+          {props.data.map(row => (
             <TableRow
               key={row.id.toString()}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
-              <TableCell align="right">{row.title}</TableCell>
-              <TableCell align="right">{row.description}</TableCell>
-              <TableCell align="right">{row.reward.toString()}</TableCell>
-              <TableCell align="right"><Button onClick={async()=>{voteForProposal(row.id, Option.FOR)}}><HowToVote/></Button></TableCell>
+              <TableCell align='right'>{row.title}</TableCell>
+              <TableCell align='right'>{row.description}</TableCell>
+              <TableCell align='right'>{row.reward.toString()}</TableCell>
+              <TableCell align='right'>
+                <Button
+                  onClick={async () => voteForProposal(row.id, Option.FOR)}
+                >
+                  <HowToVote />
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -45,102 +50,127 @@ function BasicTable(props: { data: any[]; }) {
   );
 }
 
-
 type ProposalProfile = {
-    "title":string;
-    "description": string;
-    "reward": string;
-}
+  title: string;
+  description: string;
+  reward: string;
+};
 
-function Step2(){
-    const {getProposals, submitProposal} = React.useContext(WalletContext);
-    const [proposal, setProposal] = React.useState<ProposalProfile>({title: "", description:"", reward:""});
-    const [proposalData, setProposalData] = React.useState<MessiahSystem.ProposalStruct[]>([]);
+const TextFieldItem = (props: {
+  type: string;
+  name: string;
+  value: string;
+  placeholder: string;
+  onChange: (_e: React.ChangeEvent<HTMLInputElement>) => void;
+}) => (
+  <Grid item xs={12}>
+    <TextField
+      type={props.type}
+      name={props.name}
+      label={props.name}
+      value={props.value}
+      placeholder={props.placeholder}
+      onChange={props.onChange}
+      fullWidth
+      variant='outlined'
+      required
+    />
+  </Grid>
+);
 
-    const submitProposalPressed = async() => {
-      const res = await submitProposal(proposal.title, proposal.description, Number(proposal.reward));
-    };
+function Step2() {
+  const { getProposals, submitProposal } = React.useContext(WalletContext);
+  const [proposal, setProposal] = React.useState<ProposalProfile>({
+    title: '',
+    description: '',
+    reward: '',
+  });
+  const [proposalData, setProposalData] = React.useState<
+    MessiahSystem.ProposalStruct[]
+  >([]);
 
-    React.useEffect(()=>{
-      loadProposalData();
-    },[]);
-
-    const loadProposalData = async()=>{
-      const data = await getProposals(1);
-      console.log(data);
-
-      if(!data){
-        return 0;
-      }
-      setProposalData(data);
+  const submitProposalPressed = async () => {
+    if (proposal.title && proposal.description && proposal.reward) {
+      await submitProposal(
+        proposal.title,
+        proposal.description,
+        Number(proposal.reward)
+      );
     }
+  };
 
-    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setProposal({
-        ...proposal,
-        [event.target.name]: event.target.value,
-        });
-    };
+  React.useEffect(() => {
+    loadProposalData();
+  }, []);
 
-    return(
-        <div>
-          <Grid container alignItems="center" justifyContent="center">
-              <Box mt={5} mb={5}>
-                  <Typography variant="h2" gutterBottom component="div">Proposal List</Typography>
-              </Box>
-          </Grid>
+  const loadProposalData = async () => {
+    const data = await getProposals(1);
+    console.log(data);
+    if (!data) {
+      return 0;
+    }
+    setProposalData(data);
+  };
 
-        <BasicTable data={proposalData}/>
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setProposal({
+      ...proposal,
+      [event.target.name]: event.target.value,
+    });
+  };
 
-        <Grid container justifyContent={"center"}>
+  return (
+    <div>
+      <Grid container justifyContent='center'>
+        <Typography variant='h2' mt={5} mb={5}>
+          Proposal List
+        </Typography>
+      </Grid>
+
+      <BasicTable data={proposalData} />
+
+      <Paper elevation={3} sx={{ my: 4, p: 2, pt: 4 }}>
+        <Grid container justifyContent={'center'} spacing={1}>
+          <Typography variant='h4' gutterBottom>
+            Submit Proposal
+          </Typography>
+          <TextFieldItem
+            type='string'
+            name='title'
+            value={proposal.title}
+            onChange={handleChange}
+            placeholder='hogehoge'
+          />
+          <TextFieldItem
+            type='string'
+            name='description'
+            value={proposal.description}
+            onChange={handleChange}
+            placeholder='hogehoge'
+          />
+          <TextFieldItem
+            type='number'
+            name='reward'
+            value={proposal.reward}
+            onChange={handleChange}
+            placeholder='2000'
+          />
           <Grid item xs={12}>
-            <Typography variant="h4" gutterBottom>Submit Proposal</Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              type="text"
-              name="title"
-              value={proposal.title}
-              onChange={handleChange}
-              label="title"
-              placeholder="hogehoge"
+            <Button
+              variant='contained'
+              onClick={submitProposalPressed}
+              startIcon={<Send />}
               fullWidth
-              variant="outlined"
-              required
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              type="text"
-              name="description"
-              value={proposal.description}
-              onChange={handleChange}
-              label="description"
-              placeholder="hogehoge"
-              fullWidth
-              variant="outlined"
-              required
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              type="text"
-              name="reward"
-              value={proposal.reward}
-              onChange={handleChange}
-              label="Reward"
-              placeholder="2000"
-              fullWidth
-              variant="outlined"
-              required
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <Button variant="contained" onClick={submitProposalPressed} startIcon={<Send />} fullWidth type="button">Submit Proposal</Button>
+              type='button'
+              sx={{ py: 1.5, fontSize: '1rem' }}
+            >
+              Submit Proposal
+            </Button>
           </Grid>
         </Grid>
-      </div>
-    )
+      </Paper>
+    </div>
+  );
 }
 
 export default Step2;

@@ -27,6 +27,42 @@ import { Option } from './ethereum/contractVariables';
 import { WalletContext } from './ethereum/WalletProvider';
 import GET_TRANSFERS from './graphql/subgraph';
 
+type Balance = {
+  wallet: string;
+  balance: number;
+  ratio: number;
+};
+
+const dummy_symbol = 'MSH';
+
+const dummyBalance: Balance[] = [
+  {
+    wallet: '0xE3D094a5C68732C9E5D6574AC4071dC0d8bE151E',
+    balance: 2142,
+    ratio: 70.0,
+  },
+  {
+    wallet: '0xab13accfc85a69d6ce95b0d91e1184f4cd56783b',
+    balance: 212,
+    ratio: 9.5,
+  },
+  {
+    wallet: '0x28efa0ab047a40afe6bd3f00dea09e88f644080b',
+    balance: 42,
+    ratio: 4.0,
+  },
+  {
+    wallet: '0xcee78947980f5d06bfe05f02f116080e14adb8c1',
+    balance: 22,
+    ratio: 2.8,
+  },
+  {
+    wallet: '0x4b8619890fa9c3cf11c497961eb4b970d440127f',
+    balance: 32,
+    ratio: 3.2,
+  },
+];
+
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const client = new ApolloClient({
@@ -35,7 +71,7 @@ const client = new ApolloClient({
 });
 
 function BasicTable(props: {
-  data: any[];
+  data: Balance[];
   funcVote: (address: string) => void;
 }) {
   const { getTally } = React.useContext(WalletContext);
@@ -96,36 +132,6 @@ function BasicTable(props: {
     </TableContainer>
   );
 }
-
-const dummy_symbol = 'MSH';
-
-const dummyBalance = [
-  {
-    wallet: '0xE3D094a5C68732C9E5D6574AC4071dC0d8bE151E',
-    balance: 2142,
-    ratio: 70.0,
-  },
-  {
-    wallet: '0xab13accfc85a69d6ce95b0d91e1184f4cd56783b',
-    balance: 212,
-    ratio: 9.5,
-  },
-  {
-    wallet: '0x28efa0ab047a40afe6bd3f00dea09e88f644080b',
-    balance: 42,
-    ratio: 4.0,
-  },
-  {
-    wallet: '0xcee78947980f5d06bfe05f02f116080e14adb8c1',
-    balance: 22,
-    ratio: 2.8,
-  },
-  {
-    wallet: '0x4b8619890fa9c3cf11c497961eb4b970d440127f',
-    balance: 32,
-    ratio: 3.2,
-  },
-];
 
 const first: any = {
   labels: [],
@@ -211,7 +217,7 @@ function TokenBalanceGraph() {
 }
 
 function Step1() {
-  const [data, setData] = React.useState([{}]);
+  const [data, setData] = React.useState<Balance[]>([]);
   const [blacklist, setBlacklist] = React.useState<string[]>([]);
   const { voteForBlacklist, claimMessiahToken, getBlacklist } =
     React.useContext(WalletContext);
