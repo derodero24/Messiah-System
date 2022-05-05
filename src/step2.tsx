@@ -1,20 +1,27 @@
 import * as React from 'react';
 
 import { HowToVote, Send } from '@mui/icons-material';
-import { Button, Grid, Paper, TextField, Typography } from '@mui/material';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
+import {
+  Box,
+  Button,
+  Grid,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+} from '@mui/material';
 
 import { MessiahSystem } from '../typechain-types';
-import { Option } from './ethereum/contractVariables';
+import { Option, ProposalState } from './ethereum/contractVariables';
 import { WalletContext } from './ethereum/WalletProvider';
 
 function ProposalTable() {
-  const { getProposals, voteForProposal, getTally } =
+  const { getProposals, voteForProposal, getTally, endVoting } =
     React.useContext(WalletContext);
   const [proposals, setProposals] = React.useState<
     MessiahSystem.ProposalStruct[]
@@ -26,7 +33,7 @@ function ProposalTable() {
     // ページロード時にProposal一覧を更新
     getProposals(1).then(data => {
       console.log(data);
-      setProposals(data);
+      setProposals(data.filter(item => item.state === ProposalState.VOTING));
     });
   }, [getProposals]);
 
@@ -72,7 +79,10 @@ function ProposalTable() {
               key={row.id.toString()}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
-              <TableCell align='right'>{row.title}</TableCell>
+              <TableCell align='right'>
+                <Button onClick={async () => endVoting(row.id)}>{'　'}</Button>
+                {row.title}
+              </TableCell>
               <TableCell align='right'>{row.description}</TableCell>
               <TableCell align='right'>{row.reward.toString()}</TableCell>
               <TableCell align='right'>
@@ -154,7 +164,9 @@ function Step2() {
 
       <ProposalTable />
 
-      <Paper elevation={3} sx={{ my: 4, p: 2, pt: 4 }}>
+      <Box sx={{ height: '64px' }} />
+
+      <Paper elevation={3} sx={{ p: 2, pt: 4 }}>
         <Grid container justifyContent={'center'} spacing={1}>
           <Typography variant='h4' gutterBottom>
             Submit Proposal
