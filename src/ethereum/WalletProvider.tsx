@@ -1,4 +1,4 @@
-import { BigNumber, BigNumberish, Contract } from 'ethers';
+import { BigNumber, BigNumberish, constants, Contract } from 'ethers';
 import {
   createContext,
   ReactNode,
@@ -31,9 +31,8 @@ declare global {
 export const WalletContext = createContext({
   wallet: undefined as Wallet,
   connectWallet: () => {},
-  checkMessiahExists: async (_erc721Add: string) => '' as undefined | string,
-  deployMessiahSystem: async (_erc721Addr: string, _erc20Addr: string) => {},
-  updateContract: async (_addr: string) => {},
+  connectMessiahSystem: async (_erc721Add: string) => false,
+  deployMessiahSystem: async (_erc721Addr: string, _erc20Addr: string) => false,
   updateProposalState: async () => {},
   // Getter
   getBlacklist: async (_page: number) => [] as string[],
@@ -132,34 +131,36 @@ export default function WalletProvider(props: { children: ReactNode }) {
     }
   };
 
-  useEffect(() => {
-    // Connect on page load
-    connectWallet();
-  }, [connectWallet]);
-
-  useEffect(() => {
-    if (!wallet) return;
-    window.ethereum.on('accountsChanged', onAccountsChanged);
-    window.ethereum.on('chainChanged', () => window.location.reload());
-  }, [wallet]);
-
-  const checkMessiahExists = async (erc721Add: string) => {
-    const res =
-      await wallet?.contract.messiahSystemFactory.messiahSystemAddress(
-        erc721Add
-      );
-    return res;
-  };
-
-  const deployMessiahSystem = async (erc721Add: string, erc20Add: string) => {
-    await wallet?.contract.messiahSystemFactory.deployMessiahSystem(
-      erc721Add,
-      erc20Add
+  const connectMessiahSystem = async (erc721Add: string) => {
+    return (
+      wallet?.contract.messiahSystemFactory
+        .messiahSystemAddress(erc721Add)
+        .then(address => {
+          console.log('address:', address);
+          if (address !== constants.AddressZero) {
+            updateContract(address);
+            return true;
+          } else {
+            return false;
+          }
+        }) || false
     );
   };
 
+  const deployMessiahSystem = async (erc721Add: string, erc20Add: string) => {
+    try {
+      await wallet?.contract.messiahSystemFactory.deployMessiahSystem(
+        erc721Add,
+        erc20Add
+      );
+      return true;
+    } catch (error) {
+      console.log(error);
+      return false;
+    }
+  };
+
   const updateContract = async (messiahSystemAddressInput: string) => {
-    console.log(messiahSystemAddressInput);
     setMessiahSystemAddress(messiahSystemAddressInput);
 
     const provider = new Web3Provider(window.ethereum);
@@ -316,14 +317,24 @@ export default function WalletProvider(props: { children: ReactNode }) {
     await wallet?.contract.messiahSystem?.endVoting(proposalId);
   };
 
+  useEffect(() => {
+    // Connect on page load
+    connectWallet();
+  }, [connectWallet]);
+
+  useEffect(() => {
+    if (!wallet) return;
+    window.ethereum.on('accountsChanged', onAccountsChanged);
+    window.ethereum.on('chainChanged', () => window.location.reload());
+  }, [wallet]);
+
   return (
     <WalletContext.Provider
       value={{
         wallet,
         connectWallet,
-        checkMessiahExists,
+        connectMessiahSystem,
         deployMessiahSystem,
-        updateContract,
         updateProposalState,
         getBlacklist,
         getProposals,
