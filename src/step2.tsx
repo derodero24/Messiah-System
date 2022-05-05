@@ -13,8 +13,48 @@ import { MessiahSystem } from '../typechain-types';
 import { Option } from './ethereum/contractVariables';
 import { WalletContext } from './ethereum/WalletProvider';
 
-function BasicTable(props: { data: any[] }) {
-  const { voteForProposal } = React.useContext(WalletContext);
+function ProposalTable() {
+  const { getProposals, voteForProposal, getTally } =
+    React.useContext(WalletContext);
+  const [proposals, setProposals] = React.useState<
+    MessiahSystem.ProposalStruct[]
+  >([]);
+  const [voteCounts, setVoteCounts] = React.useState<number[]>([]);
+  const timer = React.useRef<NodeJS.Timer>();
+
+  React.useEffect(() => {
+    // ページロード時にProposal一覧を更新
+    getProposals(1).then(data => {
+      console.log(data);
+      setProposals(data);
+    });
+  }, [getProposals]);
+
+  React.useEffect(() => {
+    // Proposal一覧が更新されたら初期化
+    setVoteCounts(Array.from({ length: proposals.length }, () => 0));
+  }, [proposals]);
+
+  React.useEffect(() => {
+    // 1秒ごとに票数更新
+    if (timer.current) clearInterval(timer.current);
+    const newVoteCounts = Array.from({ length: proposals.length }, () => 0);
+    timer.current = setInterval(() => {
+      for (let i = 0; i < proposals.length; i++) {
+        getTally(proposals[i].id).then(tally => {
+          if (tally) {
+            // console.log(tally);
+            newVoteCounts[i] = tally.totalFor.toNumber();
+            setVoteCounts(newVoteCounts);
+          }
+        });
+      }
+    }, 1000);
+    return () => {
+      if (timer.current) clearInterval(timer.current);
+    };
+  }, [proposals, getTally]);
+
   return (
     <TableContainer component={Paper} elevation={3}>
       <Table sx={{ minWidth: 650 }} aria-label='simple table'>
@@ -27,7 +67,7 @@ function BasicTable(props: { data: any[] }) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {props.data.map(row => (
+          {proposals.map((row, idx) => (
             <TableRow
               key={row.id.toString()}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
@@ -41,6 +81,7 @@ function BasicTable(props: { data: any[] }) {
                 >
                   <HowToVote />
                 </Button>
+                {voteCounts[idx]}
               </TableCell>
             </TableRow>
           ))}
@@ -79,15 +120,12 @@ const TextFieldItem = (props: {
 );
 
 function Step2() {
-  const { getProposals, submitProposal } = React.useContext(WalletContext);
+  const { submitProposal } = React.useContext(WalletContext);
   const [proposal, setProposal] = React.useState<ProposalProfile>({
     title: '',
     description: '',
     reward: '',
   });
-  const [proposalData, setProposalData] = React.useState<
-    MessiahSystem.ProposalStruct[]
-  >([]);
 
   const submitProposalPressed = async () => {
     if (proposal.title && proposal.description && proposal.reward) {
@@ -97,19 +135,6 @@ function Step2() {
         Number(proposal.reward)
       );
     }
-  };
-
-  React.useEffect(() => {
-    loadProposalData();
-  }, []);
-
-  const loadProposalData = async () => {
-    const data = await getProposals(1);
-    console.log(data);
-    if (!data) {
-      return 0;
-    }
-    setProposalData(data);
   };
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,7 +152,7 @@ function Step2() {
         </Typography>
       </Grid>
 
-      <BasicTable data={proposalData} />
+      <ProposalTable />
 
       <Paper elevation={3} sx={{ my: 4, p: 2, pt: 4 }}>
         <Grid container justifyContent={'center'} spacing={1}>
