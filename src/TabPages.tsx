@@ -1,10 +1,11 @@
 import * as React from 'react';
 
+import { Button } from '@mui/material';
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import Typography from '@mui/material/Typography';
 
+import { WalletContext } from './ethereum/WalletProvider';
 import Step0 from './step0';
 import Step1 from './step1';
 import Step2 from './step2';
@@ -41,6 +42,7 @@ function a11yProps(index: number) {
 }
 
 export default function TabPages() {
+  const { endFreezing, updateProposalState } = React.useContext(WalletContext);
   const [value, setValue] = React.useState(0);
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -56,6 +58,12 @@ export default function TabPages() {
           <Tab label='Step 2 : Eden life' {...a11yProps(2)} />
           <Tab label='Step 3 : Wizard of Creation' {...a11yProps(3)} />
           <Tab label='Step 4 : Apple Eat' {...a11yProps(4)} />
+          <Button
+            onClick={() => {
+              endFreezing();
+              updateProposalState();
+            }}
+          />
         </Tabs>
       </Box>
       <TabPanel value={value} index={0}>
