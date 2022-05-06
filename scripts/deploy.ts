@@ -1,12 +1,19 @@
 import { ethers } from 'hardhat';
 
 async function main() {
-  const operator = '0xb199c3D287a207A215DF500ffA06C58F26000713';
+  const accounts = [
+    '0xb199c3D287a207A215DF500ffA06C58F26000713',
+    '0xb199c3D287a207A215DF500ffA06C58F26000713',
+    '0xb199c3D287a207A215DF500ffA06C58F26000713',
+    '0xb199c3D287a207A215DF500ffA06C58F26000713',
+    '0xb199c3D287a207A215DF500ffA06C58F26000713',
+    '0xb199c3D287a207A215DF500ffA06C58F26000713',
+  ];
   const signers = await ethers.getSigners();
 
   // Send Ether
   await signers[0].sendTransaction({
-    to: operator,
+    to: accounts[0],
     value: ethers.utils.parseEther('1.0'),
   });
 
@@ -22,10 +29,10 @@ async function main() {
   await ethers
     .getContractFactory('SimpleERC721')
     .then(factory =>
-      factory.deploy('Main', 'MAIN').then(contract => contract.deployed())
+      factory.deploy('AsmaH', 'ASMA').then(contract => contract.deployed())
     )
     .then(token => {
-      token.safeMint(operator, 0);
+      accounts.map((account, idx) => token.safeMint(account, idx));
       console.log('SimpleERC721 deployed to:', token.address);
     });
 
@@ -33,10 +40,13 @@ async function main() {
   await ethers
     .getContractFactory('SimpleERC20')
     .then(factory =>
-      factory.deploy('Sub', 'SUB').then(contract => contract.deployed())
+      factory.deploy('AstH', 'ASH').then(contract => contract.deployed())
     )
     .then(token => {
-      token.mint(operator, 10);
+      token.mint(accounts[1], 800000);
+      token.mint(accounts[2], 100000);
+      token.mint(accounts[3], 50000);
+      token.mint(accounts[4], 50000);
       console.log('SimpleERC20 deployed to:', token.address);
     });
 }

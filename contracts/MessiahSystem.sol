@@ -429,7 +429,7 @@ contract MessiahSystem {
         view
         returns (string memory)
     {
-        return ERC20(tokenAddress).name();
+        return string(abi.encodePacked(ERC20(tokenAddress).name(), "_Messiah"));
     }
 
     function _fetchTokenSymbol(address tokenAddress)
@@ -437,7 +437,7 @@ contract MessiahSystem {
         view
         returns (string memory)
     {
-        return ERC20(tokenAddress).symbol();
+        return string(abi.encodePacked(ERC20(tokenAddress).symbol(), "MEAH"));
     }
 
     function _fetchTokenDecimals(address tokenAddress)
@@ -461,7 +461,7 @@ contract MessiahSystem {
         view
         returns (uint256)
     {
-        return 100_000 * 10**_fetchTokenDecimals(tokenAddress);
+        return 1_000_000 * 10**_fetchTokenDecimals(tokenAddress);
     }
 
     function _fetchClaimableAmount(address tokenAddress, address claimer)

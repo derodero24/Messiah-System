@@ -4,32 +4,24 @@ import { Box, Button, Grid, Paper, TextField, Typography } from '@mui/material';
 
 import { WalletContext } from './ethereum/WalletProvider';
 
-type messiahProps = {
-  erc721Add: string;
-  erc20Add: string;
-};
-
 export default function Step0() {
   const walletContext = React.useContext(WalletContext);
-  const [createMessiahProps, setCreateMessiahProps] =
-    React.useState<messiahProps>({ erc721Add: '', erc20Add: '' });
   const [erc721Address, setERC721Address] = React.useState('');
+  const [erc20Address, setERC20Address] = React.useState('');
   const [checkFlag, setCheckFlag] = React.useState(false);
 
   const createMessiahPressed = async () => {
     // contract method
-    console.log(createMessiahProps);
+    console.log(erc721Address, erc20Address);
     // デプロイ
     const res = await walletContext.deployMessiahSystem(
-      createMessiahProps.erc721Add,
-      createMessiahProps.erc20Add
+      erc721Address,
+      erc20Address
     );
     if (res) {
       // TX完了まで1秒ごとに更新
       const timer = setInterval(async () => {
-        const res = await walletContext.connectMessiahSystem(
-          createMessiahProps.erc721Add
-        );
+        const res = await walletContext.connectMessiahSystem(erc721Address);
         if (res) clearInterval(timer);
       }, 1000);
     }
@@ -48,10 +40,7 @@ export default function Step0() {
   const CreateMessiahHandleChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    setCreateMessiahProps({
-      ...createMessiahProps,
-      [event.target.name]: event.target.value,
-    });
+    setERC20Address(event.target.value);
   };
 
   const createMessiahForm = () => {
@@ -62,7 +51,10 @@ export default function Step0() {
             You Go Next Step
           </Typography>
           <Typography variant='h5'>
-            Connecting Messiah System: {walletContext.wallet.address}
+            Connecting Messiah System: {walletContext.wallet.address} <br />
+            Original ERC721 Token: {walletContext.tokens.ERC721} <br />
+            Original ERC20 Token: {walletContext.tokens.ERC20} <br />
+            New ERC20 Token: {walletContext.tokens.Messiah} <br />
           </Typography>
           <Button
             variant='contained'
@@ -122,8 +114,7 @@ export default function Step0() {
             <TextField
               type='text'
               name='erc721Add'
-              value={createMessiahProps.erc721Add}
-              onChange={CreateMessiahHandleChange}
+              value={erc721Address}
               label='ERC-721 Token Address'
               placeholder='0x742982...'
               fullWidth
@@ -138,7 +129,7 @@ export default function Step0() {
             <TextField
               type='text'
               name='erc20Add'
-              value={createMessiahProps.erc20Add}
+              value={erc20Address}
               onChange={CreateMessiahHandleChange}
               label='ERC-20 Token Address'
               placeholder='0x742982...'

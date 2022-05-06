@@ -30,6 +30,7 @@ declare global {
 
 export const WalletContext = createContext({
   wallet: undefined as Wallet,
+  tokens: { ERC721: '', ERC20: '', Messiah: '' },
   connectWallet: () => {},
   // Factory
   connectMessiahSystem: async (_erc721Add: string) => false,
@@ -79,6 +80,11 @@ export default function WalletProvider(props: { children: ReactNode }) {
   const [wallet, setWallet] = useState<Wallet>();
   const [walletAddress, setWalletAddress] = useState('');
   const [messiahSystemAddress, setMessiahSystemAddress] = useState('');
+  const [tokens, setTokens] = useState({
+    ERC721: '',
+    ERC20: '',
+    Messiah: '',
+  });
 
   const onAccountsChanged = useCallback((addresses: string[]) => {
     if (!addresses.length) setWalletAddress('');
@@ -350,10 +356,28 @@ export default function WalletProvider(props: { children: ReactNode }) {
     window.ethereum.on('chainChanged', () => window.location.reload());
   }, [wallet, onAccountsChanged]);
 
+  useEffect(() => {
+    // ウォレット更新時にトークン一覧更新
+    if (!wallet?.contract.messiahSystem) return;
+    const messiahSystem = wallet?.contract.messiahSystem;
+    Promise.all([
+      messiahSystem.mainOriginalTokenAddress(),
+      messiahSystem.subOriginalTokenAddress(),
+      messiahSystem.messiahToken(),
+    ]).then(([erc721, erc20, messiah]) => {
+      setTokens({
+        ERC721: erc721,
+        ERC20: erc20,
+        Messiah: messiah,
+      });
+    });
+  }, [wallet?.contract.messiahSystem]);
+
   return (
     <WalletContext.Provider
       value={{
         wallet,
+        tokens,
         connectWallet,
         connectMessiahSystem,
         disconnectMessiahSystem,
