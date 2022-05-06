@@ -2,12 +2,6 @@ import { ArcElement, Chart as ChartJS, Legend, Tooltip } from 'chart.js';
 import * as React from 'react';
 import { Doughnut } from 'react-chartjs-2';
 
-import {
-  ApolloClient,
-  ApolloProvider,
-  InMemoryCache,
-  useQuery,
-} from '@apollo/client';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import {
   Box,
@@ -25,50 +19,14 @@ import {
 
 import { Option } from './ethereum/contractVariables';
 import { WalletContext } from './ethereum/WalletProvider';
-import GET_TRANSFERS from './graphql/subgraph';
-
-type Balance = {
-  wallet: string;
-  balance: number;
-  ratio: number;
-};
-
-const dummy_symbol = 'MSH';
-
-const dummyBalance: Balance[] = [
-  {
-    wallet: '0xE3D094a5C68732C9E5D6574AC4071dC0d8bE151E',
-    balance: 2142,
-    ratio: 70.0,
-  },
-  {
-    wallet: '0xab13accfc85a69d6ce95b0d91e1184f4cd56783b',
-    balance: 212,
-    ratio: 9.5,
-  },
-  {
-    wallet: '0x28efa0ab047a40afe6bd3f00dea09e88f644080b',
-    balance: 42,
-    ratio: 4.0,
-  },
-  {
-    wallet: '0xcee78947980f5d06bfe05f02f116080e14adb8c1',
-    balance: 22,
-    ratio: 2.8,
-  },
-  {
-    wallet: '0x4b8619890fa9c3cf11c497961eb4b970d440127f',
-    balance: 32,
-    ratio: 3.2,
-  },
-];
+import tokenBalanceData from "./token_balance.json";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const client = new ApolloClient({
-  cache: new InMemoryCache(),
-  uri: 'https://api.studio.thegraph.com/query/26120/testgraph/v0.0.5',
-});
+type Balance = {
+  id: string;
+  balance: number;
+};
 
 function BasicTable(props: {
   data: Balance[];
@@ -84,7 +42,7 @@ function BasicTable(props: {
     const newVoteCounts = Array.from({ length: props.data.length }, () => 0);
     const timer = setInterval(() => {
       for (let i = 0; i < props.data.length; i++) {
-        getTally(props.data[i].wallet).then(tally => {
+        getTally(props.data[i].id).then(tally => {
           if (tally) {
             newVoteCounts[i] = tally.totalFor.toNumber();
             setVoteCounts(newVoteCounts);
@@ -101,24 +59,22 @@ function BasicTable(props: {
         <TableHead>
           <TableRow>
             <TableCell align='right'>Wallet</TableCell>
-            <TableCell align='right'>Balance ({dummy_symbol})</TableCell>
-            <TableCell align='right'>Ratio (%)</TableCell>
+            <TableCell align='right'>Balance</TableCell>
             <TableCell align='right'>Vote</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {props.data.map((row, idx) => (
             <TableRow
-              key={row.wallet}
+              key={row.id}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
-              <TableCell align='right'>{row.wallet}</TableCell>
+              <TableCell align='right'>{row.id}</TableCell>
               <TableCell align='right'>{row.balance}</TableCell>
-              <TableCell align='right'>{row.ratio}</TableCell>
               <TableCell align='right'>
                 <Button
                   onClick={() => {
-                    props.funcVote(row.wallet);
+                    props.funcVote(row.id);
                   }}
                 >
                   <HowToVoteIcon />
@@ -147,18 +103,11 @@ const first: any = {
 };
 
 function TokenBalanceGraph() {
-  // Read more about useDapp on https://usedapp.io/
-
-  const { loading, error: subgraphQueryError, data } = useQuery(GET_TRANSFERS);
-  const [tokenHolders, setTokenHolders] = React.useState([]);
   const [graphData, setGraphData] = React.useState(first);
 
-  React.useEffect(() => {
-    if (!loading && !subgraphQueryError && data) {
-      setTokenHolders(data.accountTokenBalances);
-      makeGraphData(data.accountTokenBalances);
-    }
-  }, [loading, subgraphQueryError, data]);
+  React.useEffect(()=>{
+    makeGraphData(tokenBalanceData);
+  }, []);
 
   const makeGraphData = async (source: any) => {
     const labels: any[] = [];
@@ -198,17 +147,9 @@ function TokenBalanceGraph() {
   };
 
   return (
-    <Grid container>
-      <Grid item xs={6}>
-        {tokenHolders.map((tokenHolder: any) => (
-          <div key={tokenHolder.id} style={{ margin: '20px' }}>
-            <div>アドレス： {tokenHolder.id}</div>
-            <div>残高： {tokenHolder.balance}</div>
-          </div>
-        ))}
-      </Grid>
-      <Grid item xs={6}>
-        <Box sx={{ width: '75%' }}>
+    <Grid container alignItems="center">
+      <Grid item xs={12}>
+        <Box sx={{ width: '50%' }}>
           <Doughnut data={graphData} />
         </Box>
       </Grid>
@@ -236,11 +177,11 @@ function Step1() {
 
   React.useEffect(() => {
     // 降順に並び替え
-    dummyBalance.sort((a, b) => {
+    tokenBalanceData.sort((a, b) => {
       if (a.balance < b.balance) return 1;
       else return -1;
     });
-    setData(dummyBalance);
+    setData(tokenBalanceData);
   }, []);
 
   React.useEffect(() => {
@@ -257,9 +198,7 @@ function Step1() {
         </Typography>
       </Grid>
 
-      <ApolloProvider client={client}>
-        <TokenBalanceGraph />
-      </ApolloProvider>
+      <TokenBalanceGraph />
 
       <BasicTable data={data} funcVote={vote} />
 
@@ -278,7 +217,13 @@ function Step1() {
         <Typography variant='h4' gutterBottom>
           Go Eden
         </Typography>
-        <Button variant='contained' onClick={claimPressed}>
+        <Button sx={{
+              mt: 2,
+              backgroundColor: 'mediumblue',
+              '&:hover': { background: 'blueviolet' },
+            }}
+            variant='contained'
+             onClick={claimPressed}>
           Claim new token
         </Button>
       </Box>

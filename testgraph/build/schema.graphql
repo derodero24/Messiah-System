@@ -1,5 +1,0 @@
-type AccountTokenBalance @entity {
-  id: ID! #wallet address
-  token: String! #token address
-  balance: BigInt! #現在のトークン残高
-}
