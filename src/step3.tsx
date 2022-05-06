@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import * as React from 'react';
 
 import { FollowTheSigns, HowToVote, Send } from '@mui/icons-material';
@@ -147,7 +148,7 @@ export interface SimpleDialogProps {
   open: boolean;
   title: string;
   id: string;
-  onClose: (value: string) => void;
+  onClose: () => void;
 }
 
 type commitProfile = {
@@ -165,6 +166,8 @@ function SimpleDialog(props: SimpleDialogProps) {
 
   const submitGithubPressed = async (id: string) => {
     await submitProduct(id, commitProps.github, commitProps.comment);
+    setCommitProps({ github: '', comment: '' });
+    onClose();
   };
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -175,7 +178,7 @@ function SimpleDialog(props: SimpleDialogProps) {
   };
 
   const handleClose = () => {
-    onClose(title);
+    onClose();
   };
 
   return (
