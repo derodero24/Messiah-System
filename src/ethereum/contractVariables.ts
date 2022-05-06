@@ -5,7 +5,7 @@ import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers';
 import { MessiahSystem, MessiahSystemFactory } from '../../typechain-types';
 
 export const MessiahSystemFactoryAddress =
-  '0x8A791620dd6260079BF849Dc5567aDC3F2FdC318';
+  '0x904C812bF06c9bDb325ADE79Da87096af49F7E5f';
 
 export type Wallet =
   | {
