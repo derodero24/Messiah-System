@@ -300,6 +300,7 @@ contract MessiahSystem {
             "Can claim only by submitter"
         );
         proposals[submission.proposalId].resolver = msg.sender;
+        proposals[submission.proposalId].state = ProposalState.COMPLETED;
         messiahToken.transfer(msg.sender, proposal.reward);
     }
 
@@ -345,7 +346,7 @@ contract MessiahSystem {
         // return
         //     (total * 100) / _fetchTotalSupply(mainOriginalTokenAddress) >= 4 &&
         //     totalFor > totalAgainst;
-        return total > 0 && totalFor > totalAgainst;
+        return total >= 2 && totalFor > totalAgainst;
     }
 
     function _propose(
@@ -354,6 +355,7 @@ contract MessiahSystem {
         string memory description,
         uint256 reward
     ) private {
+        reward = reward * 10**messiahToken.decimals();
         require(
             reward <= messiahToken.balanceOf(address(this)),
             "Reward exceed the balance of this contract"
@@ -456,18 +458,18 @@ contract MessiahSystem {
 
     function _fetchTotalSupply(address tokenAddress)
         private
-        pure
+        view
         returns (uint256)
     {
-        return 100;
+        return 100_000 * 10**_fetchTokenDecimals(tokenAddress);
     }
 
     function _fetchClaimableAmount(address tokenAddress, address claimer)
         private
-        pure
+        view
         returns (uint256)
     {
-        return 10;
+        return ERC20(tokenAddress).balanceOf(claimer);
     }
 
     /* ########## Test Functions ########## */

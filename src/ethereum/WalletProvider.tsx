@@ -36,6 +36,7 @@ export const WalletContext = createContext({
   disconnectMessiahSystem: () => {},
   deployMessiahSystem: async (_erc721Addr: string, _erc20Addr: string) => false,
   // Getter
+  getMessiahTokenAddress: async () => undefined as string | undefined,
   getBlacklist: async (_page: number) => [] as string[],
   getProposals: async (_page: number) =>
     [] as MessiahSystem.ProposalStructOutput[],
@@ -141,6 +142,10 @@ export default function WalletProvider(props: { children: ReactNode }) {
   );
 
   /* ########## Getter ########## */
+  const getMessiahTokenAddress = useCallback(async () => {
+    return wallet?.contract.messiahSystem?.messiahToken();
+  }, [wallet?.contract.messiahSystem]);
+
   const getBlacklist = useCallback(
     async (page: number) => {
       if (!wallet?.contract.messiahSystem) return [];
@@ -354,6 +359,7 @@ export default function WalletProvider(props: { children: ReactNode }) {
         disconnectMessiahSystem,
         deployMessiahSystem,
         updateProposalState,
+        getMessiahTokenAddress,
         getBlacklist,
         getProposals,
         getSubmissions,
