@@ -1,31 +1,24 @@
 import * as React from 'react';
 
-import {
-  Add,
-  AddPhotoAlternate,
-  FollowTheSigns,
-  HowToVote,
-  Person,
-  Send,
-} from '@mui/icons-material';
+import { FollowTheSigns, HowToVote, Send } from '@mui/icons-material';
+import ReplayIcon from '@mui/icons-material/Replay';
 import {
   Box,
   Button,
-  Fab,
+  Dialog,
+  DialogTitle,
   Grid,
-  MenuItem,
+  IconButton,
   Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
   Typography,
 } from '@mui/material';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
 
 import { MessiahSystem } from '../typechain-types';
 import { Option, ProposalState } from './ethereum/contractVariables';
@@ -40,12 +33,7 @@ function ProposalTable(props: { data: MessiahSystem.ProposalStruct[] }) {
 
   const handleClickOpen = (title: string, id: string) => {
     setSelectedValue({ title, id });
-
     setOpen(true);
-  };
-
-  const handleClose = (value: string) => {
-    setOpen(false);
   };
 
   return (
@@ -86,7 +74,7 @@ function ProposalTable(props: { data: MessiahSystem.ProposalStruct[] }) {
         title={selectedValue.title}
         id={selectedValue.id}
         open={open}
-        onClose={handleClose}
+        onClose={() => setOpen(false)}
       />
     </div>
   );
@@ -155,11 +143,7 @@ function SimpleDialog(props: SimpleDialogProps) {
   });
 
   const submitGithubPressed = async (id: string) => {
-    const res = await submitProduct(
-      id,
-      commitProps.github,
-      commitProps.comment
-    );
+    await submitProduct(id, commitProps.github, commitProps.comment);
   };
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -171,10 +155,6 @@ function SimpleDialog(props: SimpleDialogProps) {
 
   const handleClose = () => {
     onClose(title);
-  };
-
-  const handleListItemClick = (value: string) => {
-    onClose(value);
   };
 
   return (
@@ -229,7 +209,7 @@ function SimpleDialog(props: SimpleDialogProps) {
 
 type candidateProps = {
   proposal: MessiahSystem.ProposalStruct;
-  candidate: undefined | MessiahSystem.SubmissionStruct[];
+  candidate: MessiahSystem.SubmissionStruct[];
 };
 
 function Step3() {
@@ -240,59 +220,50 @@ function Step3() {
   const [candidateData, setCandidateData] = React.useState<candidateProps[]>(
     []
   );
-  const [developingStateIds, setDevelopingStateIds] = React.useState([]);
 
-  const loadProposalData = async () => {
-    const data = await getProposals(1);
-    console.log(data);
+  const updateProposalData = React.useCallback(() => {
+    // Proposal一覧取得
+    getProposals(1).then(proposals => {
+      console.log('proposals:', proposals);
+      if (!proposals) return;
+      setProposalData(
+        proposals.filter(x => x.state === ProposalState.DEVELOPING)
+      );
+    });
+  }, [getProposals]);
 
-    if (!data) {
-      return 0;
-    }
+  React.useEffect(() => {
+    updateProposalData();
+  }, [updateProposalData]);
 
-    //filter developing state
-    //setDevelopingStateIds();
-
-    const developingData = data.filter(
-      x => x.state === ProposalState.DEVELOPING
-    );
-
-    setProposalData(developingData);
-  };
-
-  const loadSubmissionData = async () => {
-    const tmp: candidateProps[] = Array.from(
+  React.useEffect(() => {
+    // Candidate一覧を1秒おきに更新取得
+    const newCandidateData: candidateProps[] = Array.from(
       { length: proposalData.length },
       (_, idx) => ({ proposal: proposalData[idx], candidate: [] })
     );
-
-    for (let i = 0; i < proposalData.length; i++) {
-      getSubmissions(proposalData[i].id, 1).then(submissionData => {
-        console.log(submissionData);
-        if (submissionData) {
-          tmp[i].candidate = submissionData;
-          setCandidateData(tmp);
-        }
-      });
-    }
-  };
-
-  React.useEffect(() => {
-    loadProposalData();
-  }, []);
-
-  React.useEffect(() => {
-    loadSubmissionData();
-  }, [proposalData]);
+    const timer = setInterval(() => {
+      for (let i = 0; i < proposalData.length; i++) {
+        getSubmissions(proposalData[i].id, 1).then(submissionData => {
+          if (submissionData) {
+            newCandidateData[i].candidate = submissionData;
+            setCandidateData(newCandidateData);
+          }
+        });
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [proposalData, getSubmissions]);
 
   return (
     <div>
       <Grid container alignItems='center' justifyContent='center'>
-        <Box mt={5} mb={5}>
-          <Typography variant='h2' gutterBottom component='div'>
-            Decided Proposal
-          </Typography>
-        </Box>
+        <Typography variant='h2' gutterBottom mt={5} mb={5}>
+          Decided Proposal
+        </Typography>
+        <IconButton onClick={updateProposalData}>
+          <ReplayIcon sx={{ fontSize: '2rem' }} />
+        </IconButton>
       </Grid>
       <ProposalTable data={proposalData} />
 
