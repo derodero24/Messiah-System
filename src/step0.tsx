@@ -4,15 +4,8 @@ import { Box, Button, Grid, Paper, TextField, Typography } from '@mui/material';
 
 import { WalletContext } from './ethereum/WalletProvider';
 
-type messiahProps = {
-  erc721Add: string;
-  erc20Add: string;
-};
-
 export default function Step0() {
   const walletContext = React.useContext(WalletContext);
-  // const [createMessiahProps, setCreateMessiahProps] =
-  //   React.useState<messiahProps>({ erc721Add: '', erc20Add: '' });
   const [erc721Address, setERC721Address] = React.useState('');
   const [erc20Address, setERC20Address] = React.useState('');
   const [checkFlag, setCheckFlag] = React.useState(false);
