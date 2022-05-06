@@ -32,10 +32,10 @@ function ProposalTable(props: { proposals: MessiahSystem.ProposalStruct[] }) {
     // 1秒ごとに票数更新
     const timer = setInterval(() => {
       for (let i = 0; i < props.proposals.length; i++) {
-        getTally(props.proposals[i].id).then(tally => {
+        getTally(props.proposals[i].id).then((tally) => {
           if (tally) {
             // console.log(tally);
-            setVoteCounts(prev => {
+            setVoteCounts((prev) => {
               const newVoteCounts = _.cloneDeep(prev);
               newVoteCounts[i] = tally.totalFor.toNumber();
               return newVoteCounts;
@@ -49,13 +49,13 @@ function ProposalTable(props: { proposals: MessiahSystem.ProposalStruct[] }) {
 
   return (
     <TableContainer component={Paper} elevation={3}>
-      <Table sx={{ minWidth: 650 }} aria-label='simple table'>
+      <Table sx={{ minWidth: 650 }} aria-label="simple table">
         <TableHead>
           <TableRow>
-            <TableCell align='right'>Title</TableCell>
-            <TableCell align='right'>Description</TableCell>
-            <TableCell align='right'>Reward</TableCell>
-            <TableCell align='right'>Vote</TableCell>
+            <TableCell align="right">Title</TableCell>
+            <TableCell align="right">Description</TableCell>
+            <TableCell align="right">Reward</TableCell>
+            <TableCell align="right">Vote</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -64,13 +64,13 @@ function ProposalTable(props: { proposals: MessiahSystem.ProposalStruct[] }) {
               key={row.id.toString()}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
-              <TableCell align='right'>
+              <TableCell align="right">
                 <Button onClick={async () => endVoting(row.id)}>{'　'}</Button>
                 {row.title}
               </TableCell>
-              <TableCell align='right'>{row.description}</TableCell>
-              <TableCell align='right'>{row.reward.toString()}</TableCell>
-              <TableCell align='right'>
+              <TableCell align="right">{row.description}</TableCell>
+              <TableCell align="right">{row.reward.toString()}</TableCell>
+              <TableCell align="right">
                 <Button
                   onClick={async () => voteForProposal(row.id, Option.FOR)}
                 >
@@ -108,7 +108,7 @@ const TextFieldItem = (props: {
       placeholder={props.placeholder}
       onChange={props.onChange}
       fullWidth
-      variant='outlined'
+      variant="outlined"
       required
     />
   </Grid>
@@ -137,9 +137,9 @@ function Step2() {
 
   const updateProposalData = React.useCallback(() => {
     // ページロード時にProposal一覧を更新
-    getProposals(1).then(data => {
+    getProposals(1).then((data) => {
       console.log('proposals:', data);
-      setProposals(data.filter(item => item.state === ProposalState.VOTING));
+      setProposals(data.filter((item) => item.state === ProposalState.VOTING));
     });
   }, [getProposals]);
 
@@ -156,8 +156,8 @@ function Step2() {
 
   return (
     <div>
-      <Grid container justifyContent='center'>
-        <Typography variant='h2' mt={5} mb={5}>
+      <Grid container justifyContent="center">
+        <Typography variant="h2" mt={5} mb={5}>
           Proposal List
         </Typography>
         <IconButton onClick={updateProposalData}>
@@ -171,38 +171,44 @@ function Step2() {
 
       <Paper elevation={3} sx={{ p: 2, pt: 4 }}>
         <Grid container justifyContent={'center'} spacing={1}>
-          <Typography variant='h4' gutterBottom>
+          <Typography variant="h4" gutterBottom>
             Submit Proposal
           </Typography>
           <TextFieldItem
-            type='string'
-            name='title'
+            type="string"
+            name="title"
             value={proposal.title}
             onChange={handleChange}
-            placeholder='hogehoge'
+            placeholder="hogehoge"
           />
           <TextFieldItem
-            type='string'
-            name='description'
+            type="string"
+            name="description"
             value={proposal.description}
             onChange={handleChange}
-            placeholder='hogehoge'
+            placeholder="hogehoge"
           />
           <TextFieldItem
-            type='number'
-            name='reward'
+            type="number"
+            name="reward"
             value={proposal.reward}
             onChange={handleChange}
-            placeholder='2000'
+            placeholder="2000"
           />
           <Grid item xs={12}>
             <Button
-              variant='contained'
+              variant="contained"
               onClick={submitProposalPressed}
               startIcon={<Send />}
               fullWidth
-              type='button'
-              sx={{ py: 1.5, fontSize: '1rem' }}
+              type="button"
+              sx={{
+                mt: 2,
+                backgroundColor: 'mediumblue',
+                '&:hover': { background: 'blueviolet' },
+                py: 1.5,
+                fontSize: '1rem',
+              }}
             >
               Submit Proposal
             </Button>

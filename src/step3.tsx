@@ -40,23 +40,23 @@ function ProposalTable(props: { data: MessiahSystem.ProposalStruct[] }) {
   return (
     <div>
       <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }} aria-label='simple table'>
+        <Table sx={{ minWidth: 650 }} aria-label="simple table">
           <TableHead>
             <TableRow>
-              <TableCell align='right'>Title</TableCell>
-              <TableCell align='right'>Reward</TableCell>
-              <TableCell align='right'>Submit</TableCell>
+              <TableCell align="right">Title</TableCell>
+              <TableCell align="right">Reward</TableCell>
+              <TableCell align="right">Submit</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {props.data.map(row => (
+            {props.data.map((row) => (
               <TableRow
                 key={row.id.toString()}
                 sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
               >
-                <TableCell align='right'>{row.title}</TableCell>
-                <TableCell align='right'>{row.reward.toString()}</TableCell>
-                <TableCell align='right'>
+                <TableCell align="right">{row.title}</TableCell>
+                <TableCell align="right">{row.reward.toString()}</TableCell>
+                <TableCell align="right">
                   <Button
                     onClick={() => {
                       handleClickOpen(row.title, row.id.toString());
@@ -89,10 +89,10 @@ function CandidateTable(props: { data: MessiahSystem.SubmissionStruct[] }) {
     // 1秒ごとに票数更新
     const timer = setInterval(() => {
       for (let i = 0; i < props.data.length; i++) {
-        getTally(props.data[i].id).then(tally => {
+        getTally(props.data[i].id).then((tally) => {
           if (tally) {
             // console.log(tally);
-            setVoteCounts(prev => {
+            setVoteCounts((prev) => {
               const newVoteCounts = _.cloneDeep(prev);
               newVoteCounts[i] = tally.totalFor.toNumber();
               return newVoteCounts;
@@ -107,13 +107,13 @@ function CandidateTable(props: { data: MessiahSystem.SubmissionStruct[] }) {
   return (
     <div>
       <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }} aria-label='simple table'>
+        <Table sx={{ minWidth: 650 }} aria-label="simple table">
           <TableHead>
             <TableRow>
-              <TableCell align='right'>Submitter</TableCell>
-              <TableCell align='right'>Github</TableCell>
-              <TableCell align='right'>Comment</TableCell>
-              <TableCell align='right'>Vote</TableCell>
+              <TableCell align="right">Submitter</TableCell>
+              <TableCell align="right">Github</TableCell>
+              <TableCell align="right">Comment</TableCell>
+              <TableCell align="right">Vote</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -122,10 +122,10 @@ function CandidateTable(props: { data: MessiahSystem.SubmissionStruct[] }) {
                 key={row.submitter}
                 sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
               >
-                <TableCell align='right'>{row.submitter}</TableCell>
-                <TableCell align='right'>{row.url}</TableCell>
-                <TableCell align='right'>{row.comment}</TableCell>
-                <TableCell align='right'>
+                <TableCell align="right">{row.submitter}</TableCell>
+                <TableCell align="right">{row.url}</TableCell>
+                <TableCell align="right">{row.comment}</TableCell>
+                <TableCell align="right">
                   <Button
                     onClick={() => {
                       voteForSubmission(row.id, Option.FOR);
@@ -183,45 +183,48 @@ function SimpleDialog(props: SimpleDialogProps) {
 
   return (
     <Dialog onClose={handleClose} open={open}>
-      <DialogTitle>
-        {title} {id}
-      </DialogTitle>
+      <DialogTitle>{title}</DialogTitle>
       <Grid container justifyContent={'center'}>
         <Grid item xs={12}>
           <TextField
-            type='text'
-            name='github'
+            type="text"
+            name="github"
             value={commitProps.github}
             onChange={handleChange}
-            label='https://github/repo'
-            placeholder='https://github/repo'
+            label="https://github/repo"
+            placeholder="https://github/repo"
             fullWidth
-            variant='outlined'
+            variant="outlined"
             required
           />
         </Grid>
         <Grid item xs={12}>
           <TextField
-            type='text'
-            name='comment'
+            type="text"
+            name="comment"
             value={commitProps.comment}
             onChange={handleChange}
-            label='comment'
-            placeholder='good point'
+            label="comment"
+            placeholder="good point"
             fullWidth
-            variant='outlined'
+            variant="outlined"
             required
           />
         </Grid>
         <Grid item xs={12}>
           <Button
-            variant='contained'
+            sx={{
+              mt: 2,
+              backgroundColor: 'mediumblue',
+              '&:hover': { background: 'blueviolet' },
+            }}
+            variant="contained"
             onClick={() => {
               submitGithubPressed(id);
             }}
             startIcon={<Send />}
             fullWidth
-            type='button'
+            type="button"
           >
             Submit
           </Button>
@@ -247,11 +250,11 @@ function Step3() {
 
   const updateProposalData = React.useCallback(() => {
     // Proposal一覧取得
-    getProposals(1).then(proposals => {
+    getProposals(1).then((proposals) => {
       console.log('proposals:', proposals);
       if (!proposals) return;
       setProposalData(
-        proposals.filter(x => x.state === ProposalState.DEVELOPING)
+        proposals.filter((x) => x.state === ProposalState.DEVELOPING)
       );
     });
   }, [getProposals]);
@@ -268,7 +271,7 @@ function Step3() {
     );
     const timer = setInterval(() => {
       for (let i = 0; i < proposalData.length; i++) {
-        getSubmissions(proposalData[i].id, 1).then(submissionData => {
+        getSubmissions(proposalData[i].id, 1).then((submissionData) => {
           if (submissionData) {
             newCandidateData[i].candidate = submissionData;
             setCandidateData(newCandidateData);
@@ -281,8 +284,8 @@ function Step3() {
 
   return (
     <div>
-      <Grid container alignItems='center' justifyContent='center'>
-        <Typography variant='h2' gutterBottom mt={5} mb={5}>
+      <Grid container alignItems="center" justifyContent="center">
+        <Typography variant="h2" gutterBottom mt={5} mb={5}>
           Decided Proposal
         </Typography>
         <IconButton onClick={updateProposalData}>
@@ -292,15 +295,18 @@ function Step3() {
       <ProposalTable data={proposalData} />
 
       <Box m={5}>
-        <Typography variant='h3' gutterBottom>
+        <Typography variant="h3" gutterBottom>
           Candidate
         </Typography>
-        {candidateData.map(row => {
+        {candidateData.map((row) => {
           return (
             <div key={row.proposal.id.toString()}>
               <Box m={5}>
-                <Typography variant='h5' gutterBottom>
-                  {row.proposal.title} {row.proposal.reward.toString()}
+                <Typography variant="h5" gutterBottom>
+                  Title : {row.proposal.title}
+                </Typography>
+                <Typography variant="h5" gutterBottom>
+                  Reward : {row.proposal.reward.toString()}
                 </Typography>
                 <CandidateTable data={row.candidate} />
               </Box>

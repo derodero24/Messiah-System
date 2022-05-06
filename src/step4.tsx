@@ -35,26 +35,34 @@ function BasicTable(props: { data: appleEatItem[] }) {
 
   return (
     <TableContainer component={Paper}>
-      <Table sx={{ minWidth: 650 }} aria-label='simple table'>
+      <Table sx={{ minWidth: 650 }} aria-label="simple table">
         <TableHead>
           <TableRow>
-            <TableCell align='right'>appleEater</TableCell>
-            <TableCell align='right'>title</TableCell>
-            <TableCell align='right'>reward</TableCell>
-            <TableCell align='right'>Claim</TableCell>
+            <TableCell align="right">appleEater</TableCell>
+            <TableCell align="right">title</TableCell>
+            <TableCell align="right">reward</TableCell>
+            <TableCell align="right">Claim</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {props.data.map(row => (
+          {props.data.map((row) => (
             <TableRow
               key={Number(row.id)}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
-              <TableCell align='right'>{row.appleEater}</TableCell>
-              <TableCell align='right'>{row.title}</TableCell>
-              <TableCell align='right'>{row.reward.toString()}</TableCell>
-              <TableCell align='right'>
-                <Button onClick={() => claimPressed(row.id)}>
+              <TableCell align="right">{row.appleEater}</TableCell>
+              <TableCell align="right">{row.title}</TableCell>
+              <TableCell align="right">{row.reward.toString()}</TableCell>
+              <TableCell align="right">
+                <Button
+                  sx={{
+                    mt: 2,
+                    backgroundColor: 'mediumblue',
+                    '&:hover': { background: 'blueviolet' },
+                  }}
+                  variant="contained"
+                  onClick={() => claimPressed(row.id)}
+                >
                   Claim Reward
                 </Button>
               </TableCell>
@@ -72,15 +80,15 @@ function Step4() {
   const [appleEatData, setAppleEatData] = React.useState<appleEatItem[]>([]);
 
   const loadProposalData = React.useCallback(async () => {
-    const proposalData = await getProposals(1).then(proposals =>
-      proposals.filter(x => x.state === ProposalState.DEVELOPING)
+    const proposalData = await getProposals(1).then((proposals) =>
+      proposals.filter((x) => x.state === ProposalState.DEVELOPING)
     );
     // console.log(proposalData);
     if (!proposalData) return;
 
     const newAppleEatData: appleEatItem[] = [];
     for (let i = 0; i < proposalData.length; i++) {
-      await getSubmissions(proposalData[i].id, 1).then(async submissions => {
+      await getSubmissions(proposalData[i].id, 1).then(async (submissions) => {
         // console.log('submissions:', submissions);
         if (!submissions.length) return;
         let winner: MessiahSystem.SubmissionStructOutput | null = null;
@@ -115,9 +123,9 @@ function Step4() {
 
   return (
     <div>
-      <Grid container alignItems='center' justifyContent='center'>
+      <Grid container alignItems="center" justifyContent="center">
         <Box mt={5} mb={5}>
-          <Typography variant='h2' gutterBottom component='div'>
+          <Typography variant="h2" gutterBottom component="div">
             Apple Eating
           </Typography>
         </Box>
