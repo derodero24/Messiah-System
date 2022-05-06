@@ -1,3 +1,4 @@
+import { BigNumber } from 'ethers';
 import * as React from 'react';
 
 import {
@@ -15,11 +16,20 @@ import {
 } from '@mui/material';
 
 import { MessiahSystem } from '../typechain-types';
+import { ProposalState } from './ethereum/contractVariables';
 import { WalletContext } from './ethereum/WalletProvider';
 
-function BasicTable(props: { data: any[] }) {
+type appleEatItem = {
+  id: BigNumber;
+  title: string;
+  reward: string;
+  appleEater: string;
+};
+
+function BasicTable(props: { data: appleEatItem[] }) {
   const { claimReward } = React.useContext(WalletContext);
-  const claimPressed = async (proposalId: string) => {
+
+  const claimPressed = async (proposalId: BigNumber) => {
     await claimReward(proposalId);
   };
 
@@ -57,39 +67,34 @@ function BasicTable(props: { data: any[] }) {
 }
 
 function Step4() {
-  const { getProposals, getTally, getSubmissions, getMessiahTokenAddress } =
+  const { getProposals, getTally, getSubmissions } =
     React.useContext(WalletContext);
-  const [appleEatData, setAppleEatData] = React.useState([]);
+  const [appleEatData, setAppleEatData] = React.useState<appleEatItem[]>([]);
 
-  const [proposalData, setProposalData] = React.useState<
-    MessiahSystem.ProposalStruct[]
-  >([]);
+  const loadProposalData = React.useCallback(async () => {
+    const proposalData = await getProposals(1).then(proposals =>
+      proposals.filter(x => x.state === ProposalState.DEVELOPING)
+    );
+    // console.log(proposalData);
+    if (!proposalData) return;
 
-  const loadProposalData = async () => {
-    const proposalData = await getProposals(1);
-    console.log(proposalData);
-    if (!proposalData) {
-      return 0;
-    }
-
-    const tmp = [];
+    const newAppleEatData: appleEatItem[] = [];
     for (let i = 0; i < proposalData.length; i++) {
       await getSubmissions(proposalData[i].id, 1).then(async submissions => {
-        console.log('submissions:', submissions);
+        // console.log('submissions:', submissions);
         if (!submissions.length) return;
         let winner: MessiahSystem.SubmissionStructOutput | null = null;
         let winnerFor = 2;
         for (let j = 0; j < submissions.length; j++) {
-          await getTally(submissions[j].id).then(res => {
-            console.log('tally:', res);
-            if (Number(res?.totalFor) >= winnerFor) {
-              winner = submissions[j];
-              winnerFor = Number(res?.totalFor);
-            }
-          });
+          const tally = await getTally(submissions[j].id);
+          // console.log('tally:', tally);
+          if (tally && tally.totalFor.toNumber() >= winnerFor) {
+            winner = submissions[j];
+            winnerFor = tally.totalFor.toNumber();
+          }
         }
         if (winner) {
-          tmp.push({
+          newAppleEatData.push({
             id: winner.id,
             title: proposalData[i].title,
             reward: proposalData[i].reward.toString(),
@@ -98,34 +103,15 @@ function Step4() {
         }
       });
     }
-    setAppleEatData(tmp);
-
-    // proposalData.map(async x => {
-    //   const submissions = await getSubmissions(x.id, 1);
-    //   let winner = '';
-    //   let winnerFor = 0;
-    //   submissions.map(async candidate => {
-    //     const res = await getTally(candidate.id);
-
-    //     if (Number(res?.totalFor) >= winnerFor) {
-    //       winner = candidate.submitter;
-    //       winnerFor = Number(res?.totalFor);
-    //     }
-    //     tmp.push({
-    //       proposal: x.id,
-    //       reward: x.reward.toString(),
-    //       appleEater: winner,
-    //     });
-    //   });
-    // });
-
-    setAppleEatData(tmp);
-  };
+    setAppleEatData(newAppleEatData);
+  }, [getProposals, getSubmissions, getTally]);
 
   React.useEffect(() => {
-    loadProposalData();
-    getMessiahTokenAddress().then(res => console.log(res));
-  }, []);
+    const timer = setInterval(() => {
+      loadProposalData();
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [loadProposalData]);
 
   return (
     <div>
@@ -136,7 +122,6 @@ function Step4() {
           </Typography>
         </Box>
       </Grid>
-
       <BasicTable data={appleEatData} />
     </div>
   );
