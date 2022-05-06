@@ -1,26 +1,26 @@
 [
-    {
-        "id":"0xfrengo",
-        "balance":800000
-    },
-    {
-        "id":"0xfrengo",
-        "balance":100000
-    },
-    {
-        "id":"0xfrengo",
-        "balance":50000
-    },
-    {
-        "id":"0xfrengo",
-        "balance":50000
-    },
-    {
-        "id":"0xfrengo",
-        "balance":0
-    },
-    {
-        "id":"0xfrengo",
-        "balance":0
-    }
+  {
+    "id": "0x84f81f38Dc4022E07cd2E0a53d2300bf261cE3E4",
+    "balance": 800000
+  },
+  {
+    "id": "0x6aB12FfB76594E2e74eff3FD005E167968c08513",
+    "balance": 100000
+  },
+  {
+    "id": "0x9B1Eb2675936b3e34A4d348F3e578fF4Cf712a07",
+    "balance": 50000
+  },
+  {
+    "id": "0xbDe3fc03A1d368ad635aa1be17fEd5E55c801Ed5",
+    "balance": 50000
+  },
+  {
+    "id": "0xD7457Ff5a1600f79098f22F44297Cf616F2bFA57",
+    "balance": 0
+  },
+  {
+    "id": "0x7a45E14e948B8072956590c6b9fa58DA099F1431",
+    "balance": 0
+  }
 ]
