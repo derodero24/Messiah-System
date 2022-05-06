@@ -1,10 +1,12 @@
 import * as React from 'react';
 
 import { HowToVote, Send } from '@mui/icons-material';
+import ReplayIcon from '@mui/icons-material/Replay';
 import {
   Box,
   Button,
   Grid,
+  IconButton,
   Paper,
   Table,
   TableBody,
@@ -20,35 +22,26 @@ import { MessiahSystem } from '../typechain-types';
 import { Option, ProposalState } from './ethereum/contractVariables';
 import { WalletContext } from './ethereum/WalletProvider';
 
-function ProposalTable() {
-  const { getProposals, voteForProposal, getTally, endVoting } =
+function ProposalTable(props: { proposals: MessiahSystem.ProposalStruct[] }) {
+  const { voteForProposal, getTally, endVoting } =
     React.useContext(WalletContext);
-  const [proposals, setProposals] = React.useState<
-    MessiahSystem.ProposalStruct[]
-  >([]);
   const [voteCounts, setVoteCounts] = React.useState<number[]>([]);
   const timer = React.useRef<NodeJS.Timer>();
 
   React.useEffect(() => {
-    // ページロード時にProposal一覧を更新
-    getProposals(1).then(data => {
-      console.log(data);
-      setProposals(data.filter(item => item.state === ProposalState.VOTING));
-    });
-  }, [getProposals]);
-
-  React.useEffect(() => {
     // Proposal一覧が更新されたら初期化
-    setVoteCounts(Array.from({ length: proposals.length }, () => 0));
-  }, [proposals]);
+    setVoteCounts(Array.from({ length: props.proposals.length }, () => 0));
+  }, [props.proposals]);
 
   React.useEffect(() => {
     // 1秒ごとに票数更新
-    if (timer.current) clearInterval(timer.current);
-    const newVoteCounts = Array.from({ length: proposals.length }, () => 0);
+    const newVoteCounts = Array.from(
+      { length: props.proposals.length },
+      () => 0
+    );
     timer.current = setInterval(() => {
-      for (let i = 0; i < proposals.length; i++) {
-        getTally(proposals[i].id).then(tally => {
+      for (let i = 0; i < props.proposals.length; i++) {
+        getTally(props.proposals[i].id).then(tally => {
           if (tally) {
             // console.log(tally);
             newVoteCounts[i] = tally.totalFor.toNumber();
@@ -60,7 +53,7 @@ function ProposalTable() {
     return () => {
       if (timer.current) clearInterval(timer.current);
     };
-  }, [proposals, getTally]);
+  }, [props.proposals, getTally]);
 
   return (
     <TableContainer component={Paper} elevation={3}>
@@ -74,7 +67,7 @@ function ProposalTable() {
           </TableRow>
         </TableHead>
         <TableBody>
-          {proposals.map((row, idx) => (
+          {props.proposals.map((row, idx) => (
             <TableRow
               key={row.id.toString()}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
@@ -130,7 +123,10 @@ const TextFieldItem = (props: {
 );
 
 function Step2() {
-  const { submitProposal } = React.useContext(WalletContext);
+  const { submitProposal, getProposals } = React.useContext(WalletContext);
+  const [proposals, setProposals] = React.useState<
+    MessiahSystem.ProposalStruct[]
+  >([]);
   const [proposal, setProposal] = React.useState<ProposalProfile>({
     title: '',
     description: '',
@@ -147,6 +143,18 @@ function Step2() {
     }
   };
 
+  const updateProposalData = React.useCallback(() => {
+    // ページロード時にProposal一覧を更新
+    getProposals(1).then(data => {
+      console.log('proposals:', data);
+      setProposals(data.filter(item => item.state === ProposalState.VOTING));
+    });
+  }, [getProposals]);
+
+  React.useEffect(() => {
+    updateProposalData();
+  }, [updateProposalData]);
+
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setProposal({
       ...proposal,
@@ -160,9 +168,12 @@ function Step2() {
         <Typography variant='h2' mt={5} mb={5}>
           Proposal List
         </Typography>
+        <IconButton onClick={updateProposalData}>
+          <ReplayIcon sx={{ fontSize: '2rem' }} />
+        </IconButton>
       </Grid>
 
-      <ProposalTable />
+      <ProposalTable proposals={proposals} />
 
       <Box sx={{ height: '64px' }} />
 
