@@ -1,25 +1,18 @@
 import * as React from 'react';
 
-import { AddPhotoAlternate, HowToVote, Send } from '@mui/icons-material';
 import {
   Box,
   Button,
-  Fab,
   Grid,
-  MenuItem,
   Paper,
-  TextField,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Typography,
 } from '@mui/material';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import Select, { SelectChangeEvent } from '@mui/material/Select';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
 
 import { MessiahSystem } from '../typechain-types';
 import { WalletContext } from './ethereum/WalletProvider';
@@ -27,7 +20,7 @@ import { WalletContext } from './ethereum/WalletProvider';
 function BasicTable(props: { data: any[] }) {
   const { claimReward } = React.useContext(WalletContext);
   const claimPressed = async (proposalId: string) => {
-    const res = await claimReward(proposalId);
+    await claimReward(proposalId);
   };
 
   return (
@@ -84,7 +77,7 @@ function Step4() {
       await getSubmissions(proposalData[i].id, 1).then(async submissions => {
         console.log('submissions:', submissions);
         if (!submissions.length) return;
-        let winner: MessiahSystem.SubmissionStructOutput;
+        let winner: MessiahSystem.SubmissionStructOutput | null = null;
         let winnerFor = 2;
         for (let j = 0; j < submissions.length; j++) {
           await getTally(submissions[j].id).then(res => {
@@ -95,12 +88,14 @@ function Step4() {
             }
           });
         }
-        tmp.push({
-          id: winner.id,
-          title: proposalData[i].title,
-          reward: proposalData[i].reward.toString(),
-          appleEater: winner.submitter,
-        });
+        if (winner) {
+          tmp.push({
+            id: winner.id,
+            title: proposalData[i].title,
+            reward: proposalData[i].reward.toString(),
+            appleEater: winner.submitter,
+          });
+        }
       });
     }
     setAppleEatData(tmp);

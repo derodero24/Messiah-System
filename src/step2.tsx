@@ -34,7 +34,7 @@ function ProposalTable(props: { proposals: MessiahSystem.ProposalStruct[] }) {
       for (let i = 0; i < props.proposals.length; i++) {
         getTally(props.proposals[i].id).then(tally => {
           if (tally) {
-            console.log(tally);
+            // console.log(tally);
             setVoteCounts(prev => {
               const newVoteCounts = _.cloneDeep(prev);
               newVoteCounts[i] = tally.totalFor.toNumber();

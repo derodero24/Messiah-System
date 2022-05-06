@@ -81,7 +81,27 @@ function ProposalTable(props: { data: MessiahSystem.ProposalStruct[] }) {
 }
 
 function CandidateTable(props: { data: MessiahSystem.SubmissionStruct[] }) {
-  const { voteForSubmission } = React.useContext(WalletContext);
+  const { voteForSubmission, getTally } = React.useContext(WalletContext);
+  const [voteCounts, setVoteCounts] = React.useState<number[]>([]);
+
+  React.useEffect(() => {
+    // 1秒ごとに票数更新
+    const timer = setInterval(() => {
+      for (let i = 0; i < props.data.length; i++) {
+        getTally(props.data[i].id).then(tally => {
+          if (tally) {
+            // console.log(tally);
+            setVoteCounts(prev => {
+              const newVoteCounts = _.cloneDeep(prev);
+              newVoteCounts[i] = tally.totalFor.toNumber();
+              return newVoteCounts;
+            });
+          }
+        });
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [props.data, getTally]);
 
   return (
     <div>
@@ -96,7 +116,7 @@ function CandidateTable(props: { data: MessiahSystem.SubmissionStruct[] }) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {props.data.map(row => (
+            {props.data.map((row, idx) => (
               <TableRow
                 key={row.submitter}
                 sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
@@ -112,6 +132,7 @@ function CandidateTable(props: { data: MessiahSystem.SubmissionStruct[] }) {
                   >
                     <HowToVote />
                   </Button>
+                  {voteCounts[idx]}
                 </TableCell>
               </TableRow>
             ))}
