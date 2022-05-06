@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import * as React from 'react';
 
 import { HowToVote, Send } from '@mui/icons-material';
@@ -26,33 +27,24 @@ function ProposalTable(props: { proposals: MessiahSystem.ProposalStruct[] }) {
   const { voteForProposal, getTally, endVoting } =
     React.useContext(WalletContext);
   const [voteCounts, setVoteCounts] = React.useState<number[]>([]);
-  const timer = React.useRef<NodeJS.Timer>();
-
-  React.useEffect(() => {
-    // Proposal一覧が更新されたら初期化
-    setVoteCounts(Array.from({ length: props.proposals.length }, () => 0));
-  }, [props.proposals]);
 
   React.useEffect(() => {
     // 1秒ごとに票数更新
-    const newVoteCounts = Array.from(
-      { length: props.proposals.length },
-      () => 0
-    );
-    timer.current = setInterval(() => {
+    const timer = setInterval(() => {
       for (let i = 0; i < props.proposals.length; i++) {
         getTally(props.proposals[i].id).then(tally => {
           if (tally) {
-            // console.log(tally);
-            newVoteCounts[i] = tally.totalFor.toNumber();
-            setVoteCounts(newVoteCounts);
+            console.log(tally);
+            setVoteCounts(prev => {
+              const newVoteCounts = _.cloneDeep(prev);
+              newVoteCounts[i] = tally.totalFor.toNumber();
+              return newVoteCounts;
+            });
           }
         });
       }
     }, 1000);
-    return () => {
-      if (timer.current) clearInterval(timer.current);
-    };
+    return () => clearInterval(timer);
   }, [props.proposals, getTally]);
 
   return (
