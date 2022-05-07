@@ -1,6 +1,7 @@
 {
   "name": "astar-hackathon",
   "version": "1.0.0",
+  "homepage": "./",
   "scripts": {
     "accounts": "npx hardhat accounts",
     "clean": "npx hardhat clean",
@@ -9,7 +10,7 @@
     "deploy": "npx hardhat run scripts/deploy.ts --network localhost",
     "serve": "npx hardhat node",
     "test": "npx hardhat test",
-    "build": "react-scripts build",
+    "build": "BUILD_PATH=docs react-scripts build",
     "start": "react-scripts start"
   },
   "browserslist": {
